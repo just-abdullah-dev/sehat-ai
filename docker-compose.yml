@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - models
+
+  models:
+    build: ./models
+    ports:
+      - "8500:8500"
+
+  docs:
+    build: ./docs
+    ports:
+      - "8080:8080"

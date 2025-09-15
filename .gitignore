@@ -1,0 +1,16 @@
+
+# Docker
+*.log
+*.pid
+*.sock
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build
+dist/
+build/
+.env
