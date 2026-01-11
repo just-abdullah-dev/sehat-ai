@@ -1,0 +1,208 @@
+# ============================================
+# SEHAT AI - Monorepo .gitignore
+# ============================================
+
+# ============================================
+# CREDENTIALS & SECRETS
+# ============================================
+kaggle.json
+**/kaggle.json
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+.env
+.env.local
+.env.*.local
+
+# ============================================
+# PYTHON / BACKEND
+# ============================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+virtualenv/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Uploads and reports (Backend)
+Backend/uploads/*
+!Backend/uploads/.gitkeep
+Backend/reports/*
+!Backend/reports/.gitkeep
+
+# ============================================
+# MACHINE LEARNING / ML_Part
+# ============================================
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Large datasets and zips
+ML_Part/dataset/
+ML_Part/*/dataset/
+ML_Part/*/dataset.zip
+*.zip
+!**/node_modules.zip
+
+# ML Models (large .h5, .pkl, .pth, .pt files)
+*.h5
+*.pkl
+*.pickle
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+*.tflite
+
+# Model directories
+ML_Part/*/efficientnetb0/
+ML_Part/*/hugging-face/
+ML_Part/*/examples_xrays_images/
+Backend/ml_models/*.h5
+Backend/ml_models/*.pkl
+
+# Data files (keep CSVs, exclude large datasets)
+ML_Part/*/dataset.txt
+
+# ============================================
+# NODE.JS / REACT NATIVE APP
+# ============================================
+# Dependencies
+node_modules/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+package-lock.json
+yarn.lock
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# Metro bundler
+.metro-health-check*
+
+# Native builds (generated)
+App/sehat-ai/ios/
+App/sehat-ai/android/
+/ios
+/android
+.kotlin/
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# ============================================
+# VERSION CONTROL
+# ============================================
+# Nested git repositories (keep only root repo)
+App/sehat-ai/.git/
+Backend/.git/
+ML_Part/.git/
+
+# ============================================
+# IDEs & EDITORS
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.orig.*
+.project
+.pydevproject
+.settings/
+.DS_Store
+
+# ============================================
+# OPERATING SYSTEMS
+# ============================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Linux
+*~
+.directory
+
+# ============================================
+# TEMPORARY & MISC
+# ============================================
+*.tmp
+*.bak
+*.cache
+.temp/
+tmp/
+
+# Docker (if not using these files, uncomment)
+# .dockerignore
+# docker-compose.override.yml
+
+# Claude AI context files (optional, keep for now)
+# .claude/

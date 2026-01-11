@@ -1,0 +1,354 @@
+Backend Software Requirements Specification
+1. Introduction
+1.1 Purpose
+
+The purpose of this Backend SRS is to define the technical, functional, and non-functional requirements for the backend system of Sehat AI, a medical image analysis platform designed to detect Tuberculosis (TB) and Pneumonia using deep learning. The backend will expose secure REST APIs for authentication, user data storage, image uploads, ML inference, history management, and report generation.
+
+
+1.3 Scope
+
+The backend provides:
+
+API endpoints for user authentication (JWT-based)
+
+Secure image upload via mobile app
+
+Two ML models loaded in backend:
+
+TB Detection Model (tb_model.h5)
+
+Pneumonia Detection Model (pneumonia_model.h5)
+
+Model inference functionality
+
+Scan history management (PostgreSQL)
+
+PDF report generation
+
+Container-based deployment for cloud scaling
+
+The backend does not provide a web-based UI or on-device ML inference for now.
+
+2. System Overview
+
+The backend system exposes a set of REST API endpoints, deployed in a Docker container on a cloud hosting platform. Users upload chest X-rays via the React Native app, which are processed by ML models and returned with predictions and confidence scores. User details and scan history are stored in a relational database.
+
+Architecture:
+
+FastAPI: API framework
+
+TensorFlow/Keras: Load & run ML models (.h5)
+
+Uvicorn: ASGI server
+
+Docker: Packaging & portability
+
+Cloud Hosting: Render / Railway / Google Cloud Run
+
+Database: PostgreSQL
+
+Storage: Local filesystem / S3 Bucket (future)
+
+3. Backend Functional Requirements
+3.1 User Authentication
+
+Backend must support secure JWT authentication.
+
+Users can register, login, and refresh tokens.
+
+Passwords must be hashed (bcrypt).
+
+JWT must expire and support refresh tokens.
+
+3.2 X-ray Image Upload
+
+Users upload chest X-rays through multipart/form-data.
+
+Supported formats: JPG, PNG.
+
+Maximum size: 10MB.
+
+File validation required.
+
+Images must be stored in cloud storage or server directory.
+
+3.3 ML Model Loading
+
+Backend must load both models at startup:
+
+tb_model.h5
+
+pneumonia_model.h5
+
+Models must stay in memory for faster inference.
+
+Warm-up inference must run at startup to reduce first prediction latency.
+
+3.4 Disease Prediction
+
+Backend must provide:
+
+Endpoint: /predict/
+
+Inputs:
+
+Image file
+
+Model type (tb / pneumonia)
+
+Output:
+
+Prediction result (Normal / Positive)
+
+Confidence score (0–1)
+
+Processing time
+
+Prediction must take < 10 seconds.
+
+3.5 Scan History
+
+Save each scan:
+
+user_id
+
+file_url
+
+model_used
+
+result
+
+confidence
+
+timestamp
+
+Allow user to view history in timeline format.
+
+3.6 Report Generation
+
+Generate PDF summary:
+
+Prediction
+
+Image
+
+Confidence
+
+Timestamp
+
+Model used
+
+Allow download via API.
+
+3.7 Notifications (Future)
+
+Provide backend endpoints to trigger push notifications.
+
+4. Backend Non-Functional Requirements
+Performance
+
+App startup time should not exceed 5 seconds.
+
+Model inference should complete in < 10 seconds.
+
+Image upload time is separate and not included in performance constraints.
+
+Scalability
+
+Backend must handle minimum 100 concurrent active users.
+
+Security
+
+JWT authentication
+
+Input validation
+
+File sanitization
+
+HTTPS enforcement
+
+No storing raw passwords
+
+Reliability
+
+99% uptime
+
+Automatic restart on container failure
+
+Maintainability
+
+Modular code structure
+
+Separate routes, services, model handlers
+
+Portability
+
+Must run identically on any container-supported environment
+
+Localization Support
+
+API must support language flags for report generation (English/Urdu)
+
+5. System Architecture
+5.1 High-Level Architecture Diagram (PlantUML)
+@startuml
+skinparam style strictuml
+
+actor "Mobile App" as User
+
+rectangle "Backend (FastAPI)" {
+    component "Auth Service" as Auth
+    component "Image Upload Handler" as Upload
+    component "ML Model Loader" as ModelLoader
+    component "TB Model" as TBModel
+    component "Pneumonia Model" as PMModel
+    component "Prediction Engine" as Predict
+    component "History Service" as History
+    component "PDF Report Service" as PDF
+    component "Database (PostgreSQL)" as DB
+}
+
+User --> Auth : Login / Signup API
+User --> Upload : Upload X-ray Image
+Upload --> ModelLoader
+ModelLoader --> TBModel
+ModelLoader --> PMModel
+User --> Predict : Prediction Request
+Predict --> TBModel
+Predict --> PMModel
+Predict --> History
+History --> DB
+User --> History : View Scan History
+User --> PDF : Generate Report
+PDF --> DB
+
+@enduml
+
+6. Detailed Backend Modules
+6.1 Authentication Module
+
+JWT generation & verification
+
+Password hashing
+
+User schema validation
+
+6.2 File Handling Module
+
+Validates file types
+
+Validates size limits
+
+Stores image
+
+Generates URL
+
+6.3 Model Management Module
+
+Loads TB and Pneumonia models at startup
+
+Keeps models in memory
+
+Performs warm-up inference
+
+Handles preprocessing (resize, grayscale, normalization)
+
+6.4 Prediction Engine
+
+Routes request to correct model
+
+Runs inference
+
+Generates results + confidence
+
+Returns JSON
+
+6.5 History Module
+
+Saves record in PostgreSQL
+
+Exposes endpoint to fetch user-specific scan history
+
+6.6 PDF Generation Module
+
+Generates PDF report
+
+Embeds image
+
+Includes prediction details
+
+7. API Endpoints List
+Auth
+Method	Endpoint	Description
+POST	/auth/register	Create account
+POST	/auth/login	Login and get JWT
+POST	/auth/refresh	Refresh token
+Prediction
+Method	Endpoint	Description
+POST	/predict/?model=tb	TB model prediction
+POST	/predict/?model=pneumonia	Pneumonia model prediction
+History
+Method	Endpoint	Description
+GET	/history/	Get user’s scan history
+Report
+Method	Endpoint	Description
+GET	/report/{scan_id}	Download a scan PDF report
+8. Backend Technology Stack
+Languages
+
+Python 3.10+
+
+Frameworks
+
+FastAPI
+
+TensorFlow / Keras
+
+Uvicorn ASGI
+
+Tools
+
+Docker
+
+Postman
+
+GitHub
+
+Cloud Deployment Platform (Render / Railway / Cloud Run)
+
+Database
+
+PostgreSQL
+
+9. Deployment Requirements
+9.1 Docker
+
+Dockerfile
+
+Image build
+
+Exposed port 8000
+
+9.2 Cloud Deployment
+
+Container registry
+
+HTTPS support
+
+Auto restart
+
+Environment variables:
+
+DB_URL
+
+JWT_SECRET
+
+MODEL_PATHS
+
+9.3 Logging
+
+All requests must be logged
+
+Prediction errors logged
+
+Slow inference (>10s) flagged

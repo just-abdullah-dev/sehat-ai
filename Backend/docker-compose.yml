@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: sehatai_db
+    environment:
+      POSTGRES_USER: sehatai_user
+      POSTGRES_PASSWORD: sehatai_password
+      POSTGRES_DB: sehatai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sehatai_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sehatai_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://sehatai_user:sehatai_password@db:5432/sehatai_db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-your-super-secret-key-change-this}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+      DEBUG: ${DEBUG:-False}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:19006}
+    volumes:
+      - ./ml_models:/app/ml_models
+      - ./uploads:/app/uploads
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
