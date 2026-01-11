@@ -1,0 +1,284 @@
+Software Requirements Specification (SRS) for Frontend (React Native Expo App)
+Project Title: Sehat AI — AI Mobile App for TB & Pneumonia Detection Using Chest X-rays
+Developed by: Abdullah, Abbas Mushtaq, Ikramullah Khan
+Supervisor: Dr. Abdul Waheed
+Institute: Pak-Austria Fachhochschule, Institute of Applied Science and Technology, Haripur
+________________________________________
+1. Introduction
+1.1 Purpose
+The purpose of this document is to specify all frontend requirements, functionalities, and user interface behaviors for the Sehat AI mobile application developed using React Native with Expo.
+The app allows users to:
+•	Upload chest X-rays.
+•	Get instant AI-based diagnostic predictions (TB, Pneumonia, or Normal).
+•	Track medical history and progress visually.
+•	View and download reports.
+•	Record symptoms and medications.
+This SRS will serve as a reference for frontend developers to design, implement, and test the UI/UX according to functional and non-functional requirements.
+________________________________________
+1.2 Scope
+The Sehat AI Mobile App provides an accessible platform for healthcare users to detect TB and Pneumonia using ML-powered backend services.
+The mobile app will:
+•	Run on Android and iOS using Expo (React Native).
+•	Communicate securely with a Python FastAPI/Flask backend.
+•	Support push notifications, image uploads, and PDF report downloads.
+Main Modules:
+1.	User Authentication (Login/Signup)
+2.	Dashboard (Upload & View Predictions)
+3.	Scan History (Progress Tracking)
+4.	Profile & Medical Records
+5.	Report Generation & Sharing
+6.	Notifications & Reminders
+________________________________________
+1.3 Intended Audience
+•	Developers: Frontend developers working with React Native.
+•	Testers: QA teams validating UI and API integration.
+•	Supervisors & Evaluators: Faculty reviewing implementation progress.
+•	End Users: Patients and healthcare practitioners.
+________________________________________
+1.4 Definitions
+Term	Description
+RN	React Native
+Expo	React Native development framework for cross-platform apps
+API	Application Programming Interface
+JWT	JSON Web Token
+UI	User Interface
+UX	User Experience
+________________________________________
+2. Overall Description
+2.1 Product Perspective
+The frontend is a standalone React Native Expo app acting as a client to the backend ML and database APIs.
+The app will feature:
+•	A clean, responsive interface.
+•	Seamless API integration for real-time predictions.
+•	Local storage for session management (using AsyncStorage).
+System Overview Diagram:
+[React Native App] ⇄ [FastAPI Backend] ⇄ [ML Model + PostgreSQL]
+________________________________________
+2.2 Product Functions
+1.	User Authentication
+o	Register, Login, Logout.
+o	JWT-based secure session management.
+2.	X-ray Upload & Prediction
+o	Upload image via camera/gallery.
+o	Display prediction result & confidence score.
+3.	Scan History
+o	View previous scans with results and timestamps.
+o	Visual graphs showing progress.
+4.	Reports
+o	Download AI-generated PDF reports.
+o	Share reports via email/WhatsApp.
+5.	Profile Management
+o	Edit name, email, phone number, gender, etc.
+o	Manage medical information (symptoms, medicines).
+6.	Notifications
+o	Reminders for rescan or medication.
+7.	Settings
+o	Dark mode toggle.
+o	Language preference.
+o	Privacy policy and logout.
+________________________________________
+2.3 User Characteristics
+User Type	Description
+Patient	Main user — uploads scans, views results, tracks progress.
+Doctor	(Future) Access reports shared by patients.
+Admin	(Future) Manage user accounts and feedback.
+________________________________________
+2.4 Constraints
+•	Must run on Android ≥ 9 and iOS ≥ 13.
+•	Works offline for history view (cached data).
+•	Limited image file size ≤ 10 MB.
+•	Requires internet for predictions.
+•	Authentication timeout after 7 days of inactivity.
+________________________________________
+2.5 Dependencies
+•	Backend API (FastAPI/Flask) must be deployed and reachable.
+•	ML models must be hosted and accessible.
+•	Firebase or Expo Push Notifications enabled.
+________________________________________
+3. Specific Requirements
+3.1 Functional Requirements
+FR1: User Authentication
+•	Signup Page:
+o	Input: Name, Email, Password, Confirm Password.
+o	Validation for strong password.
+o	API: /auth/signup
+•	Login Page:
+o	Input: Email, Password.
+o	API: /auth/login
+o	Store JWT in AsyncStorage.
+•	Logout:
+o	Clear local storage, redirect to login screen.
+FR2: Dashboard / Home Screen
+•	Display greeting (e.g., “Welcome, Abdullah”).
+•	Buttons for:
+o	Upload X-ray → opens image picker or camera.
+o	View Last Scan → fetch from /user/history.
+•	API Integration:
+o	POST /predict/ → upload image, receive result.
+FR3: Image Upload & Prediction
+•	Use Expo ImagePicker for upload.
+•	Display image preview.
+•	On “Analyze” button:
+o	Show loading indicator while fetching results.
+o	Receive { result, confidence } JSON.
+o	Display:
+o	Result: Pneumonia Detected
+o	Confidence: 92.4%
+•	Store result locally and in backend history.
+FR4: History Screen
+•	Fetch data via /user/history.
+•	Display list:
+•	[Date] - [Result] - [Confidence]
+•	Graph of progress (using react-native-chart-kit).
+•	Search filter by date or result type.
+FR5: Reports
+•	Button “Generate Report” triggers /user/report/:id.
+•	PDF downloaded or previewed in-app using expo-file-viewer.
+•	Option to “Share Report” (WhatsApp, Email).
+FR6: Profile Screen
+•	Fields:
+o	Name, Age, Gender, Phone, Email.
+o	Symptoms input (textarea).
+o	Medicines input (list).
+•	API endpoints:
+o	GET /user/profile
+o	PUT /user/update
+•	Profile image upload (optional).
+FR7: Notifications
+•	Expo Push Notifications for:
+o	Reminder to scan after 14 days.
+o	Medication schedule (if enabled).
+•	API: /user/notifications
+FR8: Settings
+•	Language toggle (English/Urdu).
+•	Dark/Light theme.
+•	Logout & Delete Account options.
+________________________________________
+3.2 Non-Functional Requirements
+Category	Requirement
+Performance	App should load within 3 seconds; API response < 5 seconds.
+Security	Use HTTPS, JWT authentication, and local encryption (AsyncStorage).
+Reliability	Offline caching of last 10 scans.
+Usability	Minimal navigation depth (max 3 clicks to main actions).
+Portability	Works identically on Android and iOS.
+Maintainability	Modular code structure with reusable components.
+Accessibility	Large fonts, contrast themes, and voice-over support.
+________________________________________
+4. System Design
+4.1 Architecture Overview
+React Native (Expo) app structured using MVVM pattern:
+/src
+ ├── components/
+ ├── screens/
+ │    ├── LoginScreen.js
+ │    ├── SignupScreen.js
+ │    ├── HomeScreen.js
+ │    ├── HistoryScreen.js
+ │    ├── ProfileScreen.js
+ │    ├── ReportScreen.js
+ │    └── SettingsScreen.js
+ ├── navigation/
+ │    ├── TabNavigator.js
+ │    └── StackNavigator.js
+ ├── context/
+ │    └── AuthContext.js
+ ├── services/
+ │    ├── api.js
+ │    └── storage.js
+ ├── utils/
+ │    ├── colors.js
+ │    ├── constants.js
+ │    └── notifications.js
+ └── assets/
+________________________________________
+4.2 UI Framework & Libraries
+Purpose	Library
+Core Framework	React Native (Expo)
+Navigation	React Navigation v6
+HTTP Requests	Axios
+Forms & Validation	Formik + Yup
+Chart Visualization	react-native-chart-kit
+PDF View	expo-file-viewer
+Image Picker	expo-image-picker
+Notifications	expo-notifications
+Icons	react-native-vector-icons
+Theming	Context + Tailwind / Styled Components
+________________________________________
+4.3 Navigation Flow
+Splash → Login → Dashboard → (Upload / History / Profile / Settings)
+Screen	Navigation Target
+Splash	→ Login or Home
+Login	→ Signup / Home
+Signup	→ Login / Home
+Home	→ Upload → Result Screen
+History	→ Scan Details / Report
+Profile	→ Edit Profile
+Settings	→ Logout
+________________________________________
+4.4 API Integration Details
+Function	HTTP Method	Endpoint	Response
+Login	POST	/auth/login	JWT Token
+Signup	POST	/auth/signup	User Object
+Upload X-ray	POST	/predict	Result, Confidence
+Fetch History	GET	/user/history	Array of Scan Objects
+Generate Report	GET	/user/report/:id	PDF File
+Update Profile	PUT	/user/update	Updated User
+Notifications	GET	/user/notifications	Notification Array
+________________________________________
+5. User Interface Design (Summary)
+5.1 Login Screen
+•	Minimalistic input fields.
+•	Button: “Login” / “Sign up”.
+•	Error message toast for invalid credentials.
+5.2 Home Screen
+•	Greeting message.
+•	Upload Button with icons.
+•	Result card with prediction info.
+•	Quick access to History and Reports.
+5.3 History Screen
+•	Scrollable list of previous scans.
+•	Graph view with selectable time range.
+5.4 Profile Screen
+•	Editable user info and medical fields.
+•	Save button triggers API update.
+5.5 Report Viewer
+•	Opens generated PDF.
+•	Buttons: Download, Share.
+5.6 Settings Screen
+•	Toggle switches for theme & language.
+•	Logout and Delete Account options.
+________________________________________
+6. Performance & Testing
+6.1 Testing Strategy
+•	Unit Testing: Jest
+•	Integration Testing: React Native Testing Library
+•	API Testing: Postman / Axios mock
+•	Device Testing: Android Emulator, Expo Go on iOS/Android
+6.2 Performance Metrics
+•	Frame rate ≥ 60 FPS.
+•	App startup ≤ 3 seconds.
+•	API response ≤ 5 seconds.
+________________________________________
+7. Security
+•	All API requests through HTTPS.
+•	JWT stored securely in AsyncStorage.
+•	Input validation on all forms.
+•	Logout clears all sensitive data.
+________________________________________
+8. Future Enhancements
+•	In-app doctor consultation.
+•	Voice-based symptom input.
+•	Integration with wearable devices for vitals.
+•	Local TensorFlow Lite inference (offline prediction).
+________________________________________
+9. Tools & Technologies
+Category	Tool / Library
+Framework	React Native (Expo SDK 52+)
+Language	JavaScript / TypeScript (Optional)
+UI	Tailwind CSS / Styled Components
+Testing	Jest, React Native Testing Library
+Notifications	Expo Notifications
+Charts	React Native Chart Kit
+API	Axios
+Deployment	Expo EAS Build / Play Store / App Store
+

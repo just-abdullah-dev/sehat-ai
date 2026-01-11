@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx expo start:*)",
+      "Bash(timeout /t 5)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
