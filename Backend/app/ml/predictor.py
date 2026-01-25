@@ -9,8 +9,14 @@ from app.models.scan import ModelType, PredictionResult
 class Predictor:
     """Prediction engine for TB and Pneumonia detection"""
 
+    # Model-specific input sizes
+    MODEL_INPUT_SIZES = {
+        ModelType.TB: (320, 320),
+        ModelType.PNEUMONIA: (180, 180),
+    }
+
     def __init__(self):
-        self.preprocessor = ImagePreprocessor(target_size=(224, 224))
+        pass
 
     def predict(
         self,
@@ -36,16 +42,18 @@ class Predictor:
         start_time = time.time()
 
         try:
-            # Preprocess image
-            processed_image = self.preprocessor.preprocess_image(image_bytes)
-
-            # Get appropriate model
+            # Get appropriate model and input size
             if model_type == ModelType.TB:
                 model = model_loader.get_tb_model()
             elif model_type == ModelType.PNEUMONIA:
                 model = model_loader.get_pneumonia_model()
             else:
                 raise ValueError(f"Invalid model type: {model_type}")
+
+            # Preprocess image with model-specific size
+            target_size = self.MODEL_INPUT_SIZES.get(model_type, (224, 224))
+            preprocessor = ImagePreprocessor(target_size=target_size)
+            processed_image = preprocessor.preprocess_image(image_bytes)
 
             # Run inference
             prediction = model.predict(processed_image, verbose=0)

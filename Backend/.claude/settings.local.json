@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(D:WORKsehat-aiBackendvenvScriptspip install email-validator)",
+      "Bash(dir \"D:\\\\WORK\\\\sehat-ai\\\\Backend\\\\ml_models\")",
+      "Bash(dir:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

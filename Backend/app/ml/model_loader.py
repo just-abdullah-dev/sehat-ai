@@ -57,8 +57,8 @@ class ModelLoader:
         try:
             logger.info("Performing warm-up inference...")
 
-            # Create dummy input (224x224x3 RGB image)
-            dummy_input = np.random.rand(1, 224, 224, 3).astype(np.float32)
+            # Create dummy input (320x320x3 RGB image)
+            dummy_input = np.random.rand(1, 320, 320, 3).astype(np.float32)
 
             if self.tb_model:
                 _ = self.tb_model.predict(dummy_input, verbose=0)
