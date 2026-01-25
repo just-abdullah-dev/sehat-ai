@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ```
 
 ### Step 2: Configure Environment
-
+<!-- testing  -->
 ```bash
 # Copy environment template
 cp .env.example .env
