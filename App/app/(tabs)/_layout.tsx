@@ -5,6 +5,7 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { useTheme } from '@/src/context/ThemeContext';
+import { useAuth } from '@/src/context/AuthContext';
 import { Colors } from '@/constants/theme';
 
 export default function TabLayout() {

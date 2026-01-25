@@ -24,10 +24,15 @@ import { StatusBar } from 'expo-status-bar';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, continueAsGuest } = useAuth();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGuestAccess = () => {
+    continueAsGuest();
+    router.replace('/(tabs)');
+  };
 
   const handleLogin = async (values: { email: string; password: string }) => {
     setIsLoading(true);
@@ -117,12 +122,25 @@ export default function LoginScreen() {
                   <Text style={[styles.signupText, { color: colors.icon }]}>
                     Don't have an account?{' '}
                   </Text>
-                  <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+                  <TouchableOpacity onPress={() => router.push('/signup')}>
                     <Text style={[styles.signupLink, { color: colors.tint }]}>
                       Sign Up
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                <View style={styles.dividerContainer}>
+                  <View style={[styles.divider, { backgroundColor: colors.icon }]} />
+                  <Text style={[styles.dividerText, { color: colors.icon }]}>OR</Text>
+                  <View style={[styles.divider, { backgroundColor: colors.icon }]} />
+                </View>
+
+                <Button
+                  title="Continue as Guest"
+                  variant="outline"
+                  onPress={handleGuestAccess}
+                  style={styles.guestButton}
+                />
 
                 <View style={styles.demoNotice}>
                   <Text style={[styles.demoText, { color: colors.icon }]}>
@@ -190,6 +208,24 @@ const styles = StyleSheet.create({
   signupLink: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    opacity: 0.3,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  guestButton: {
+    marginBottom: 24,
   },
   demoNotice: {
     marginTop: 32,

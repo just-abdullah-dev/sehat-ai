@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
@@ -23,9 +24,41 @@ import { profileSchema } from '@/src/utils/validation';
 import type { User } from '@/src/types';
 
 export default function ProfileScreen() {
-  const { user, updateUser } = useAuth();
+  const router = useRouter();
+  const { user, updateUser, isGuest } = useAuth();
   const { theme } = useTheme();
   const colors = Colors[theme];
+
+  // Guest restriction overlay
+  if (isGuest) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.guestOverlay}>
+          <View style={[styles.guestContent, { backgroundColor: theme === 'dark' ? '#2A2A2A' : '#fff' }]}>
+            <View style={[styles.guestIconContainer, { backgroundColor: colors.tint + '20' }]}>
+              <Ionicons name="person-circle-outline" size={48} color={colors.tint} />
+            </View>
+            <Text style={[styles.guestTitle, { color: colors.text }]}>
+              Sign In Required
+            </Text>
+            <Text style={[styles.guestSubtitle, { color: colors.icon }]}>
+              Create an account or sign in to manage your profile and medical information.
+            </Text>
+            <Button
+              title="Sign In"
+              onPress={() => router.push('/login')}
+              style={styles.signInButton}
+            />
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={[styles.signUpLink, { color: colors.tint }]}>
+                Don't have an account? Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -352,6 +385,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 60,
   },
   header: {
     alignItems: 'center',
@@ -438,5 +472,51 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
+  },
+  guestOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+  },
+  guestContent: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  guestTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  signInButton: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  signUpLink: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -102,12 +102,10 @@ export const storage = {
   // Clear All Data
   async clearAll(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([
-        STORAGE_KEYS.AUTH_TOKEN,
-        STORAGE_KEYS.USER_DATA,
-        STORAGE_KEYS.SETTINGS,
-        STORAGE_KEYS.CACHED_SCANS,
-      ]);
+      await AsyncStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      await AsyncStorage.removeItem(STORAGE_KEYS.SETTINGS);
+      await AsyncStorage.removeItem(STORAGE_KEYS.CACHED_SCANS);
     } catch (error) {
       console.error('Error clearing storage:', error);
     }

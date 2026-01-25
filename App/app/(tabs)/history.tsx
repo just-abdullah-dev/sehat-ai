@@ -10,12 +10,15 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
+import { useAuth } from '@/src/context/AuthContext';
 import { Colors } from '@/constants/theme';
 import { ResultCard } from '@/components/ResultCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { Button } from '@/components/Button';
 import { api } from '@/src/services/api';
 import { storage } from '@/src/utils/storage';
 import type { Scan } from '@/src/types';
@@ -23,8 +26,41 @@ import type { Scan } from '@/src/types';
 const { width } = Dimensions.get('window');
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const { theme } = useTheme();
+  const { isGuest } = useAuth();
   const colors = Colors[theme];
+
+  // Guest restriction overlay
+  if (isGuest) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.guestOverlay}>
+          <View style={[styles.guestContent, { backgroundColor: theme === 'dark' ? '#2A2A2A' : '#fff' }]}>
+            <View style={[styles.guestIconContainer, { backgroundColor: colors.tint + '20' }]}>
+              <Ionicons name="lock-closed" size={48} color={colors.tint} />
+            </View>
+            <Text style={[styles.guestTitle, { color: colors.text }]}>
+              Sign In Required
+            </Text>
+            <Text style={[styles.guestSubtitle, { color: colors.icon }]}>
+              Create an account or sign in to view your scan history and track your health progress.
+            </Text>
+            <Button
+              title="Sign In"
+              onPress={() => router.push('/login')}
+              style={styles.signInButton}
+            />
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={[styles.signUpLink, { color: colors.tint }]}>
+                Don't have an account? Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   const [scans, setScans] = useState<Scan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -284,6 +320,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 60,
   },
   header: {
     marginBottom: 20,
@@ -372,5 +409,51 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     marginTop: 8,
+  },
+  guestOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+  },
+  guestContent: {
+    width: '100%',
+    padding: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  guestTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  signInButton: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  signUpLink: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

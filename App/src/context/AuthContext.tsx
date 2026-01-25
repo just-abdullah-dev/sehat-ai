@@ -1,19 +1,27 @@
 // Authentication Context - Manages user authentication state
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { api } from '@/src/services/api';
-import { storage } from '@/src/utils/storage';
-import type { User, LoginCredentials, SignupData } from '@/src/types';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { api } from "@/src/services/api";
+import { storage } from "@/src/utils/storage";
+import type { User, LoginCredentials, SignupData } from "@/src/types";
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isGuest: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: User) => Promise<void>;
+  continueAsGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,7 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
   return context;
 };
@@ -34,6 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
 
   // Initialize auth state from storage
   useEffect(() => {
@@ -52,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(storedUser);
       }
     } catch (error) {
-      console.error('Error loading auth state:', error);
+      console.error("Error loading auth state:", error);
     } finally {
       setIsLoading(false);
     }
@@ -67,8 +76,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setToken(response.token);
       setUser(response.user);
+      setIsGuest(false);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message || 'Login failed');
+      throw new Error(
+        error.response?.data?.message || error.message || "Login failed",
+      );
     }
   };
 
@@ -81,8 +93,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setToken(response.token);
       setUser(response.user);
+      setIsGuest(false);
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message || 'Signup failed');
+      throw new Error(
+        error.response?.data?.message || error.message || "Signup failed",
+      );
     }
   };
 
@@ -90,12 +105,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await api.logout();
     } catch (error) {
-      console.error('Logout API error:', error);
+      console.error("Logout API error:", error);
     } finally {
       await storage.clearAll();
       setToken(null);
       setUser(null);
+      setIsGuest(false);
     }
+  };
+
+  const continueAsGuest = () => {
+    setIsGuest(true);
+    setUser({ id: "guest", name: "Guest", email: "" } as User);
   };
 
   const updateUser = async (updatedUser: User) => {
@@ -108,10 +129,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     token,
     isLoading,
     isAuthenticated: !!token && !!user,
+    isGuest,
     login,
     signup,
     logout,
     updateUser,
+    continueAsGuest,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

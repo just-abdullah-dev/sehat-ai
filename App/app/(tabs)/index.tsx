@@ -27,7 +27,7 @@ import type { Scan, PredictionResult } from '@/src/types';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { theme } = useTheme();
   const colors = Colors[theme];
 
@@ -194,24 +194,40 @@ export default function HomeScreen() {
           />
         }
       >
+        {/* Guest Login Banner */}
+        {isGuest && (
+          <TouchableOpacity
+            style={[styles.guestBanner, { backgroundColor: colors.tint + '15' }]}
+            onPress={() => router.push('/login')}
+          >
+            <Ionicons name="person-add-outline" size={20} color={colors.tint} />
+            <Text style={[styles.guestBannerText, { color: colors.tint }]}>
+              Sign in to save your scan history
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+          </TouchableOpacity>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: colors.icon }]}>
-              Welcome back,
+              {isGuest ? 'Welcome,' : 'Welcome back,'}
             </Text>
             <Text style={[styles.userName, { color: colors.text }]}>
-              {user?.name || 'User'}
+              {isGuest ? 'Guest User' : (user?.name || 'User')}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+          <TouchableOpacity
+            onPress={() => isGuest ? router.push('/login') : router.push('/(tabs)/profile')}
+          >
             <View
               style={[
                 styles.avatar,
                 { backgroundColor: colors.tint + '20' },
               ]}
             >
-              <Ionicons name="person" size={24} color={colors.tint} />
+              <Ionicons name={isGuest ? 'log-in-outline' : 'person'} size={24} color={colors.tint} />
             </View>
           </TouchableOpacity>
         </View>
@@ -236,7 +252,7 @@ export default function HomeScreen() {
         </Card>
 
         {/* Last Scan */}
-        {lastScan && (
+        {lastScan && !isGuest && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -268,8 +284,9 @@ export default function HomeScreen() {
               style={[
                 styles.actionCard,
                 { backgroundColor: theme === 'dark' ? '#2A2A2A' : '#fff' },
+                isGuest && styles.disabledCard,
               ]}
-              onPress={() => router.push('/(tabs)/history')}
+              onPress={() => isGuest ? router.push('/login') : router.push('/(tabs)/history')}
             >
               <View
                 style={[
@@ -277,19 +294,21 @@ export default function HomeScreen() {
                   { backgroundColor: '#51CF66' + '20' },
                 ]}
               >
-                <Ionicons name="time-outline" size={24} color="#51CF66" />
+                <Ionicons name="time-outline" size={24} color={isGuest ? '#51CF6680' : '#51CF66'} />
               </View>
-              <Text style={[styles.actionText, { color: colors.text }]}>
+              <Text style={[styles.actionText, { color: isGuest ? colors.icon : colors.text }]}>
                 History
               </Text>
+              {isGuest && <Ionicons name="lock-closed" size={12} color={colors.icon} style={styles.lockIcon} />}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.actionCard,
                 { backgroundColor: theme === 'dark' ? '#2A2A2A' : '#fff' },
+                isGuest && styles.disabledCard,
               ]}
-              onPress={() => router.push('/(tabs)/profile')}
+              onPress={() => isGuest ? router.push('/login') : router.push('/(tabs)/profile')}
             >
               <View
                 style={[
@@ -297,11 +316,12 @@ export default function HomeScreen() {
                   { backgroundColor: '#4C6EF5' + '20' },
                 ]}
               >
-                <Ionicons name="document-text-outline" size={24} color="#4C6EF5" />
+                <Ionicons name="document-text-outline" size={24} color={isGuest ? '#4C6EF580' : '#4C6EF5'} />
               </View>
-              <Text style={[styles.actionText, { color: colors.text }]}>
+              <Text style={[styles.actionText, { color: isGuest ? colors.icon : colors.text }]}>
                 Reports
               </Text>
+              {isGuest && <Ionicons name="lock-closed" size={12} color={colors.icon} style={styles.lockIcon} />}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -344,6 +364,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',
@@ -365,6 +386,19 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  guestBannerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
   uploadCard: {
     alignItems: 'center',
@@ -434,5 +468,13 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  disabledCard: {
+    opacity: 0.6,
+  },
+  lockIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });

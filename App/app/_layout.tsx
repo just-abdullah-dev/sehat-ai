@@ -10,29 +10,31 @@ import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
-export const unstable_settings = {
-  initialRouteName: '(auth)',
-};
-
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isGuest } = useAuth();
   const { theme } = useTheme();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading) {
+      return;
+    }
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inTabsGroup = segments[0] === '(tabs)';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
-      // Redirect to tabs if authenticated
+    // Prevent authenticated users from accessing auth screens.
+    if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');
+      return;
     }
-  }, [isAuthenticated, isLoading, segments]);
+
+    // Prevent unauthenticated (and non-guest) users from accessing protected screens.
+    if (!isAuthenticated && !isGuest && inTabsGroup) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, isLoading, isGuest, segments, router]);
 
   if (isLoading) {
     return <LoadingSpinner visible={true} message="Loading..." />;
@@ -45,6 +47,7 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       >
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen

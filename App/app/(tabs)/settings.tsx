@@ -20,7 +20,7 @@ import { Button } from '@/components/Button';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, isGuest } = useAuth();
   const { theme, toggleTheme, language, setLanguage, settings, updateSettings } = useTheme();
   const colors = Colors[theme];
 
@@ -43,8 +43,9 @@ export default function SettingsScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
+            
             await logout();
-            router.replace('/(auth)/login');
+            router.replace('/login');
           },
         },
       ]
@@ -115,6 +116,20 @@ export default function SettingsScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
+        {/* Guest Banner */}
+        {isGuest && (
+          <TouchableOpacity
+            style={[styles.guestBanner, { backgroundColor: colors.tint + '15' }]}
+            onPress={() => router.push('/login')}
+          >
+            <Ionicons name="person-add-outline" size={20} color={colors.tint} />
+            <Text style={[styles.guestBannerText, { color: colors.tint }]}>
+              Sign in to unlock all features
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+          </TouchableOpacity>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
@@ -187,19 +202,23 @@ export default function SettingsScreen() {
             }
           />
 
-          <SettingItem
-            icon="alarm-outline"
-            title="Scan Reminders"
-            subtitle="Remind me to scan every 14 days"
-            onPress={() => Alert.alert('Info', 'This feature is coming soon')}
-          />
+          {!isGuest && (
+            <>
+              <SettingItem
+                icon="alarm-outline"
+                title="Scan Reminders"
+                subtitle="Remind me to scan every 14 days"
+                onPress={() => Alert.alert('Info', 'This feature is coming soon')}
+              />
 
-          <SettingItem
-            icon="medical-outline"
-            title="Medication Reminders"
-            subtitle="Set up medication schedules"
-            onPress={() => Alert.alert('Info', 'This feature is coming soon')}
-          />
+              <SettingItem
+                icon="medical-outline"
+                title="Medication Reminders"
+                subtitle="Set up medication schedules"
+                onPress={() => Alert.alert('Info', 'This feature is coming soon')}
+              />
+            </>
+          )}
         </Card>
 
         {/* Data & Privacy */}
@@ -208,12 +227,14 @@ export default function SettingsScreen() {
             Data & Privacy
           </Text>
 
-          <SettingItem
-            icon="cloud-download-outline"
-            title="Download My Data"
-            subtitle="Export all your scan history"
-            onPress={() => Alert.alert('Info', 'Data export will be available soon')}
-          />
+          {!isGuest && (
+            <SettingItem
+              icon="cloud-download-outline"
+              title="Download My Data"
+              subtitle="Export all your scan history"
+              onPress={() => Alert.alert('Info', 'Data export will be available soon')}
+            />
+          )}
 
           <SettingItem
             icon="shield-checkmark-outline"
@@ -255,19 +276,37 @@ export default function SettingsScreen() {
 
         {/* Account Actions */}
         <View style={styles.actionSection}>
-          <Button
-            title="Logout"
-            variant="outline"
-            onPress={handleLogout}
-            style={styles.logoutButton}
-          />
+          {isGuest ? (
+            <>
+              <Button
+                title="Sign In"
+                onPress={() => router.push('/login')}
+                style={styles.logoutButton}
+              />
+              <Button
+                title="Create Account"
+                variant="outline"
+                onPress={() => router.push('/signup')}
+                style={styles.deleteButton}
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                title="Logout"
+                variant="outline"
+                onPress={handleLogout}
+                style={styles.logoutButton}
+              />
 
-          <Button
-            title="Delete Account"
-            variant="danger"
-            onPress={handleDeleteAccount}
-            style={styles.deleteButton}
-          />
+              <Button
+                title="Delete Account"
+                variant="danger"
+                onPress={handleDeleteAccount}
+                style={styles.deleteButton}
+              />
+            </>
+          )}
         </View>
 
         {/* Footer */}
@@ -296,6 +335,20 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 60,
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  guestBannerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     marginBottom: 24,
