@@ -11,7 +11,9 @@
 
 ```bash
 # Create virtual environment
-python -m venv venv
+python -m venv venv 
+# or 
+py -3.11 -m venv venv
 
 # Activate it
 # Windows:

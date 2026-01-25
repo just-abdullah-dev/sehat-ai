@@ -5,6 +5,8 @@
 # ============================================
 # CREDENTIALS & SECRETS
 # ============================================
+models
+./models
 kaggle.json
 **/kaggle.json
 *.pem
