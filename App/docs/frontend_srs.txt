@@ -1,6 +1,6 @@
 Software Requirements Specification (SRS) for Frontend (React Native Expo App)
 Project Title: Sehat AI — AI Mobile App for TB & Pneumonia Detection Using Chest X-rays
-Developed by: Abdullah, Abbas Mushtaq, Ikramullah Khan
+Developed by: Abdullah, Abbas Mushtaq
 Supervisor: Dr. Abdul Waheed
 Institute: Pak-Austria Fachhochschule, Institute of Applied Science and Technology, Haripur
 ________________________________________

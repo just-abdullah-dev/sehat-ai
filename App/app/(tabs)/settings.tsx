@@ -315,10 +315,10 @@ export default function SettingsScreen() {
             Sehat AI - TB & Pneumonia Detection
           </Text>
           <Text style={[styles.footerText, { color: colors.icon }]}>
-            Developed by Abdullah, Abbas & Ikramullah
+            Developed by Abdullah & Abbas
           </Text>
           <Text style={[styles.footerText, { color: colors.icon }]}>
-            © 2024 Pak-Austria Fachhochschule
+            © 2026 Pak-Austria Fachhochschule
           </Text>
         </View>
       </ScrollView>

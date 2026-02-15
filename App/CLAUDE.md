@@ -314,6 +314,6 @@ As per SRS document:
 
 ## Contact
 
-Developed by: Abdullah, Abbas Mushtaq, Ikramullah Khan
+Developed by: Abdullah, Abbas Mushtaq
 Supervisor: Dr. Abdul Waheed
 Institute: Pak-Austria Fachhochschule, Haripur

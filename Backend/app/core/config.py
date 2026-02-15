@@ -24,8 +24,8 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: str = "jpg,jpeg,png"
 
     # ML Models
-    TB_MODEL_PATH: str = "ml_models/tb_model.h5"
-    PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia_model.h5"
+    TB_MODEL_PATH: str = "ml_models/tb/tb_model.h5"
+    PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia/pneumonia_model.h5"
 
     # Storage
     UPLOAD_DIR: str = "uploads"

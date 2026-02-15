@@ -1,0 +1,86 @@
+flowchart TD
+    subgraph INPUT["📥 DATA INPUT"]
+        A[("🗄️ Chest X-Ray Dataset<br/>TFRecords from GCS")]
+        B["Load Images + Paths<br/><i>tf.data.TFRecordDataset</i>"]
+    end
+
+    subgraph PREPROCESS["⚙️ PREPROCESSING"]
+        C["Decode JPEG → Tensor<br/><i>tf.image.decode_jpeg(channels=3)</i>"]
+        D["Resize to 180×180<br/><i>tf.image.resize()</i>"]
+        E["Extract Labels from Path<br/><i>NORMAL→0, PNEUMONIA→1</i>"]
+        F["Train/Val Split + Batch<br/><i>4200 train, batch=25×replicas</i>"]
+    end
+
+    subgraph BALANCE["⚖️ CLASS BALANCING"]
+        G["Compute Class Weights<br/><i>weight = total / (2 × class_count)</i>"]
+    end
+
+    subgraph MODEL["🧠 CNN ARCHITECTURE"]
+        H["Input Layer<br/><b>180 × 180 × 3</b>"]
+        I["Rescaling Layer<br/><i>Normalize 0-255 → 0-1</i>"]
+        J["Conv2D(16) × 2<br/>+ MaxPool2D"]
+        K["Conv Block (32 filters)<br/><i>SeparableConv2D + BatchNorm + MaxPool</i>"]
+        L["Conv Block (64 filters)<br/><i>SeparableConv2D + BatchNorm + MaxPool</i>"]
+        M["Conv Block (128 filters)<br/>+ Dropout(0.2)"]
+        N["Conv Block (256 filters)<br/>+ Dropout(0.2)"]
+        O["Flatten"]
+        P["Dense(512) + BatchNorm + Dropout(0.7)<br/>Dense(128) + BatchNorm + Dropout(0.5)<br/>Dense(64) + BatchNorm + Dropout(0.3)"]
+        Q(["Dense(1, sigmoid)<br/><b>Binary Output</b>"])
+    end
+
+    subgraph TRAIN["🎯 TRAINING"]
+        R["Compile Model<br/><i>Adam + Exp. LR Decay (0.015→0.96)</i><br/><i>Loss: Binary Cross-Entropy</i>"]
+        S["Fit with Callbacks<br/><i>ModelCheckpoint + EarlyStopping(10)</i><br/><i>Epochs: 100, class_weight applied</i>"]
+    end
+
+    subgraph OUTPUT["📊 EVALUATION"]
+        T[["✅ Results: ~95% Accuracy<br/><i>Metrics: Accuracy, Precision, Recall</i>"]]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+    M --> N
+    N --> O
+    O --> P
+    P --> Q
+    Q --> R
+    R --> S
+    S --> T
+
+    style A fill:#0891B2,stroke:#164E63,color:#fff
+    style B fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style C fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style D fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style E fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style F fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style G fill:#FEF3C7,stroke:#F59E0B,color:#92400E
+    style H fill:#0891B2,stroke:#164E63,color:#fff
+    style I fill:#0891B2,stroke:#164E63,color:#fff
+    style J fill:#164E63,stroke:#0891B2,color:#fff
+    style K fill:#164E63,stroke:#0891B2,color:#fff
+    style L fill:#164E63,stroke:#0891B2,color:#fff
+    style M fill:#164E63,stroke:#0891B2,color:#fff
+    style N fill:#164E63,stroke:#0891B2,color:#fff
+    style O fill:#0891B2,stroke:#164E63,color:#fff
+    style P fill:#164E63,stroke:#0891B2,color:#fff
+    style Q fill:#0891B2,stroke:#164E63,color:#fff
+    style R fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style S fill:#CFFAFE,stroke:#0891B2,color:#164E63
+    style T fill:#DCFCE7,stroke:#22C55E,color:#166534
+
+    style INPUT fill:#E0F2FE,stroke:#0891B2
+    style PREPROCESS fill:#E0F2FE,stroke:#0891B2
+    style BALANCE fill:#FEF9C3,stroke:#F59E0B
+    style MODEL fill:#E0F2FE,stroke:#0891B2
+    style TRAIN fill:#E0F2FE,stroke:#0891B2
+    style OUTPUT fill:#DCFCE7,stroke:#22C55E

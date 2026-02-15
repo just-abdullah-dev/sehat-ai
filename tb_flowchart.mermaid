@@ -1,0 +1,93 @@
+flowchart TD
+    subgraph INPUT["📥 DATA INPUT"]
+        A[("🗄️ TB Chest X-Ray Dataset<br/>Kaggle: Normal + TB images")]
+        B["Load Metadata (DataFrame)<br/><i>Image paths + Labels</i>"]
+    end
+
+    subgraph PREPROCESS["⚙️ PREPROCESSING"]
+        C["Train/Val/Test Split<br/><i>3360 / 420 / 420 images</i>"]
+        D["ImageDataGenerator<br/><i>Data augmentation + normalization</i>"]
+        E["Resize to 320×320<br/><i>flow_from_dataframe()</i>"]
+        F["Normalize with Mean/Std<br/><i>Batch processing with generators</i>"]
+    end
+
+    subgraph BALANCE["⚖️ CLASS BALANCING"]
+        G["Compute Frequency Weights<br/><i>pos_weight = freq_neg</i><br/><i>neg_weight = freq_pos</i>"]
+        H["Custom Weighted Loss Function<br/><i>L = -(w_p·y·log(p) + w_n·(1-y)·log(1-p))</i>"]
+    end
+
+    subgraph MODEL["🧠 TRANSFER LEARNING ARCHITECTURE"]
+        I["Input Layer<br/><b>320 × 320 × 3</b>"]
+        J["<b>DenseNet121 (Pre-trained)</b><br/><i>ImageNet weights, include_top=False</i><br/><i>121 layers with dense connections</i>"]
+        K["Global Average Pooling 2D<br/><i>Reduce spatial dimensions</i>"]
+        L(["Dense(1, sigmoid)<br/><b>Binary Output</b>"])
+    end
+
+    subgraph TRAIN["🎯 TRAINING"]
+        M["Compile Model<br/><i>Optimizer: Adam</i><br/><i>Loss: Custom Weighted Loss</i>"]
+        N["Fine-tune Training<br/><i>Epochs: 3, steps_per_epoch: 100</i><br/><i>ModelCheckpoint callback</i>"]
+    end
+
+    subgraph GRADCAM["🔍 EXPLAINABILITY (GRAD-CAM)"]
+        O["Select Conv Layer<br/><i>conv5_block16_1_conv</i>"]
+        P["Compute Gradients<br/><i>∂Output / ∂ConvLayer</i>"]
+        Q["Global Average Pool Gradients<br/><i>Get importance weights</i>"]
+        R["Weighted Sum of Features<br/><i>weights × feature maps</i>"]
+        S["Generate Heatmap<br/><i>Apply ReLU → Normalize → Resize</i>"]
+        T["Overlay on Original Image<br/><i>Visualize attention regions</i>"]
+    end
+
+    subgraph OUTPUT["📊 EVALUATION"]
+        U[["✅ Results: ~83% Accuracy<br/><i>Metrics: Accuracy, AUC, ROC Curve</i><br/><i>+ Visual Explanation Maps</i>"]]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+    M --> N
+    N --> O
+    O --> P
+    P --> Q
+    Q --> R
+    R --> S
+    S --> T
+    T --> U
+
+    style A fill:#10B981,stroke:#065F46,color:#fff
+    style B fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style C fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style D fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style E fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style F fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style G fill:#FEF3C7,stroke:#F59E0B,color:#92400E
+    style H fill:#FEF3C7,stroke:#F59E0B,color:#92400E
+    style I fill:#10B981,stroke:#065F46,color:#fff
+    style J fill:#065F46,stroke:#10B981,color:#fff
+    style K fill:#10B981,stroke:#065F46,color:#fff
+    style L fill:#10B981,stroke:#065F46,color:#fff
+    style M fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style N fill:#D1FAE5,stroke:#10B981,color:#065F46
+    style O fill:#EDE9FE,stroke:#8B5CF6,color:#5B21B6
+    style P fill:#EDE9FE,stroke:#8B5CF6,color:#5B21B6
+    style Q fill:#EDE9FE,stroke:#8B5CF6,color:#5B21B6
+    style R fill:#EDE9FE,stroke:#8B5CF6,color:#5B21B6
+    style S fill:#EDE9FE,stroke:#8B5CF6,color:#5B21B6
+    style T fill:#EDE9FE,stroke:#8B5CF6,color:#5B21B6
+    style U fill:#DCFCE7,stroke:#22C55E,color:#166534
+
+    style INPUT fill:#D1FAE5,stroke:#10B981
+    style PREPROCESS fill:#D1FAE5,stroke:#10B981
+    style BALANCE fill:#FEF9C3,stroke:#F59E0B
+    style MODEL fill:#D1FAE5,stroke:#10B981
+    style TRAIN fill:#D1FAE5,stroke:#10B981
+    style GRADCAM fill:#F3E8FF,stroke:#8B5CF6
+    style OUTPUT fill:#DCFCE7,stroke:#22C55E

@@ -272,7 +272,7 @@ export default function ProfileScreen() {
               </Card>
 
               {/* Medical Information */}
-              <Card>
+              {/* <Card>
                 <Text style={[styles.cardTitle, { color: colors.text }]}>
                   Medical Information
                 </Text>
@@ -318,7 +318,7 @@ export default function ProfileScreen() {
                     />
                   </>
                 )}
-              </Card>
+              </Card> */}
 
               {/* Action Buttons */}
               {isEditing && (
