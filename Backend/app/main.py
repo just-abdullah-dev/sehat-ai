@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import time
 import logging
@@ -11,7 +12,7 @@ from app.core.logging_config import setup_logging
 from app.ml.model_loader import model_loader
 
 # Import routers
-from app.api import auth, prediction, history, reports
+from app.api import auth, prediction, history, reports, profile
 
 # Setup logging
 setup_logging()
@@ -58,6 +59,9 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Serve uploaded files publicly so the mobile app can load scan previews.
+app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Configure CORS
 app.add_middleware(
@@ -121,6 +125,7 @@ app.include_router(auth.router)
 app.include_router(prediction.router)
 app.include_router(history.router)
 app.include_router(reports.router)
+app.include_router(profile.router)
 
 
 # Root endpoint

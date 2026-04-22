@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import { useAuth } from '@/src/context/AuthContext';
+import type { RegisterRequest } from '@/src/types';
 import { useTheme } from '@/src/context/ThemeContext';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/Button';
@@ -24,7 +25,7 @@ import { StatusBar } from 'expo-status-bar';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const { register } = useAuth();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const [isLoading, setIsLoading] = useState(false);
@@ -37,10 +38,16 @@ export default function SignupScreen() {
   }) => {
     setIsLoading(true);
     try {
-      await signup(values);
+      const payload: RegisterRequest = {
+        username: values.name.trim(),
+        email: values.email.trim(),
+        password: values.password,
+      };
+      await register(payload);
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert('Signup Failed', error.message || 'Unable to create account');
+    } catch (error: unknown) {
+      const err = error as Error;
+      Alert.alert('Signup Failed', err.message || 'Unable to create account. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +69,7 @@ export default function SignupScreen() {
               Create Account
             </Text>
             <Text style={[styles.subtitle, { color: colors.icon }]}>
-              Join Sehat AI to start monitoring your health
+              Join Sehat AI
             </Text>
           </View>
 
@@ -153,8 +160,19 @@ export default function SignupScreen() {
 
                 <Text style={[styles.terms, { color: colors.icon }]}>
                   By signing up, you agree to our{' '}
-                  <Text style={{ color: colors.tint }}>Terms of Service</Text> and{' '}
-                  <Text style={{ color: colors.tint }}>Privacy Policy</Text>
+                  <Text
+                    style={{ color: colors.tint }}
+                    onPress={() => router.push('/terms-of-service')}
+                  >
+                    Terms of Service
+                  </Text>{' '}
+                  and{' '}
+                  <Text
+                    style={{ color: colors.tint }}
+                    onPress={() => router.push('/privacy-policy')}
+                  >
+                    Privacy Policy
+                  </Text>
                 </Text>
               </View>
             )}

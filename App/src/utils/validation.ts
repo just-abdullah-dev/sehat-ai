@@ -21,10 +21,10 @@ export const signupSchema = Yup.object().shape({
     .required('Email is required'),
   password: Yup.string()
     .min(APP_CONFIG.MIN_PASSWORD_LENGTH, `Password must be at least ${APP_CONFIG.MIN_PASSWORD_LENGTH} characters`)
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    )
+    // .matches(
+    //   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+    //   'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+    // )
     .required('Password is required'),
   confirmPassword: Yup.string()
     .oneOf([Yup.ref('password')], 'Passwords must match')
@@ -41,13 +41,10 @@ export const profileSchema = Yup.object().shape({
   phone: Yup.string()
     .matches(/^[0-9]{10,15}$/, 'Please enter a valid phone number')
     .optional(),
-  age: Yup.number()
-    .min(1, 'Age must be at least 1')
-    .max(150, 'Please enter a valid age')
+  date_of_birth: Yup.string()
+    .matches(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD format')
     .optional(),
   gender: Yup.string()
     .oneOf(['male', 'female', 'other'], 'Please select a valid gender')
     .optional(),
-  symptoms: Yup.string().optional(),
-  medicines: Yup.array().of(Yup.string()).optional(),
 });

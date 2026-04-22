@@ -58,6 +58,20 @@ function RootLayoutNav() {
             headerShown: true,
           }}
         />
+        <Stack.Screen
+          name="privacy-policy"
+          options={{
+            title: 'Privacy Policy',
+            headerShown: true,
+          }}
+        />
+        <Stack.Screen
+          name="terms-of-service"
+          options={{
+            title: 'Terms of Service',
+            headerShown: true,
+          }}
+        />
       </Stack>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
     </NavThemeProvider>

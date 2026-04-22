@@ -1,6 +1,6 @@
-// History Screen with Progress Tracking
+// History Screen with Real API Integration
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,27 +9,45 @@ import {
   RefreshControl,
   Dimensions,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { Colors } from '@/constants/theme';
 import { ResultCard } from '@/components/ResultCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Button } from '@/components/Button';
-import { api } from '@/src/services/api';
-import { storage } from '@/src/utils/storage';
-import type { Scan } from '@/src/types';
+import { historyApi } from '@/src/services/api';
+import { API_CONFIG } from '@/src/utils/constants';
+import type { ScanHistoryItem, DiseaseModel } from '@/src/types';
+
+type FilterType = 'all' | 'tb' | 'pneumonia' | 'Positive' | 'Normal';
 
 const { width } = Dimensions.get('window');
 
 export default function HistoryScreen() {
   const router = useRouter();
   const { theme } = useTheme();
-  const { isGuest } = useAuth();
+  const { isGuest, user } = useAuth();
   const colors = Colors[theme];
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const avatarStorageKey = React.useMemo(() => `@sehatai_avatar_${user?.id ?? 'guest'}`, [user?.id]);
+
+  useEffect(() => {
+    const loadAvatar = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(avatarStorageKey);
+        setAvatarUri(saved);
+      } catch {
+        setAvatarUri(null);
+      }
+    };
+    loadAvatar();
+  }, [avatarStorageKey]);
 
   // Guest restriction overlay
   if (isGuest) {
@@ -62,60 +80,50 @@ export default function HistoryScreen() {
     );
   }
 
-  const [scans, setScans] = useState<Scan[]>([]);
+  const [scans, setScans] = useState<ScanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'TB' | 'Pneumonia' | 'Normal'>('all');
+  const [filter, setFilter] = useState<FilterType>('all');
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  useEffect(() => { loadHistory(); }, []);
 
   const loadHistory = async () => {
     try {
       setIsLoading(true);
-      const history = await api.getHistory();
-      setScans(history);
-
-      // Cache for offline access
-      await storage.setCachedScans(history);
-    } catch (error) {
-      console.error('Error loading history:', error);
-      // Load from cache if API fails
-      const cached = await storage.getCachedScans();
-      setScans(cached);
+      const response = await historyApi.getHistory();
+      setScans(response.scans);
+    } catch (err) {
+      console.warn('History load error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await loadHistory();
     setIsRefreshing(false);
-  };
+  }, []);
 
-  const getFilteredScans = () => {
+  const getFilteredScans = (): ScanHistoryItem[] => {
     if (filter === 'all') return scans;
-    return scans.filter(scan => scan.result === filter);
+    if (filter === 'tb' || filter === 'pneumonia') {
+      return scans.filter(s => s.model_used === filter);
+    }
+    return scans.filter(s => s.result === filter);
   };
 
   const getChartData = () => {
-    const recentScans = scans.slice(0, 6).reverse();
-
-    if (recentScans.length === 0) {
-      return {
-        labels: ['No Data'],
-        datasets: [{ data: [0] }],
-      };
+    const recent = [...scans].slice(0, 6).reverse();
+    if (recent.length === 0) {
+      return { labels: ['No Data'], datasets: [{ data: [0] }] };
     }
-
     return {
-      labels: recentScans.map((_, index) => `Scan ${index + 1}`),
+      labels: recent.map((_, i) => `${i + 1}`),
       datasets: [
         {
-          data: recentScans.map(scan => scan.confidence),
-          color: (opacity = 1) => colors.tint,
+          data: recent.map(s => Math.round(s.confidence * 100)),
+          color: () => colors.tint,
           strokeWidth: 2,
         },
       ],
@@ -126,29 +134,20 @@ export default function HistoryScreen() {
     backgroundColor: theme === 'dark' ? '#2A2A2A' : '#ffffff',
     backgroundGradientFrom: theme === 'dark' ? '#2A2A2A' : '#ffffff',
     backgroundGradientTo: theme === 'dark' ? '#2A2A2A' : '#ffffff',
-    decimalPlaces: 1,
-    color: (opacity = 1) => colors.tint,
-    labelColor: (opacity = 1) => colors.text,
-    style: {
-      borderRadius: 16,
-    },
-    propsForDots: {
-      r: '6',
-      strokeWidth: '2',
-      stroke: colors.tint,
-    },
+    decimalPlaces: 0,
+    color: () => colors.tint,
+    labelColor: () => colors.text,
+    style: { borderRadius: 16 },
+    propsForDots: { r: '5', strokeWidth: '2', stroke: colors.tint },
   };
 
-  const getStats = () => {
-    const total = scans.length;
-    const tb = scans.filter(s => s.result === 'TB').length;
-    const pneumonia = scans.filter(s => s.result === 'Pneumonia').length;
-    const normal = scans.filter(s => s.result === 'Normal').length;
-
-    return { total, tb, pneumonia, normal };
+  const stats = {
+    total: scans.length,
+    tb: scans.filter(s => s.model_used === 'tb').length,
+    pneumonia: scans.filter(s => s.model_used === 'pneumonia').length,
+    normal: scans.filter(s => s.result === 'Normal').length,
   };
 
-  const stats = getStats();
   const filteredScans = getFilteredScans();
 
   if (isLoading) {
@@ -170,12 +169,24 @@ export default function HistoryScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Scan History
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.icon }]}>
-            {stats.total} total scans
-          </Text>
+          <View>
+            <Text style={[styles.greeting, { color: colors.icon }]}>Welcome back,</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>{user?.username || 'User'}</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+            <View style={[styles.avatar, { backgroundColor: colors.tint + '20' }]}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={24} color={colors.tint} />
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.titleBlock}>
+          <Text style={[styles.title, { color: colors.text }]}>Scan History</Text>
+          <Text style={[styles.subtitle, { color: colors.icon }]}>{stats.total} total scans</Text>
         </View>
 
         {/* Stats Cards */}
@@ -231,15 +242,15 @@ export default function HistoryScreen() {
         </View>
 
         {/* Progress Chart */}
-        {scans.length > 0 && (
+        {scans.length > 1 && (
           <View style={styles.chartContainer}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Confidence Trend
+              Confidence Trend (%)
             </Text>
             <LineChart
               data={getChartData()}
               width={width - 40}
-              height={220}
+              height={200}
               chartConfig={chartConfig}
               bezier
               style={styles.chart}
@@ -250,7 +261,7 @@ export default function HistoryScreen() {
         {/* Filter Buttons */}
         <View style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {['all', 'TB', 'Pneumonia', 'Normal'].map((f) => (
+            {(['all', 'tb', 'pneumonia', 'Positive', 'Normal'] as FilterType[]).map(f => (
               <TouchableOpacity
                 key={f}
                 style={[
@@ -264,18 +275,10 @@ export default function HistoryScreen() {
                         : '#F5F5F5',
                   },
                 ]}
-                onPress={() => setFilter(f as any)}
+                onPress={() => setFilter(f)}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    {
-                      color:
-                        filter === f ? '#fff' : colors.text,
-                    },
-                  ]}
-                >
-                  {f === 'all' ? 'All' : f}
+                <Text style={[styles.filterText, { color: filter === f ? '#fff' : colors.text }]}>
+                  {f === 'all' ? 'All' : f === 'tb' ? 'TB' : f === 'pneumonia' ? 'Pneumonia' : f}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -295,13 +298,19 @@ export default function HistoryScreen() {
               </Text>
             </View>
           ) : (
-            filteredScans.map((scan) => (
+            filteredScans.map(scan => (
               <ResultCard
                 key={scan.id}
+                model={scan.model_used as DiseaseModel}
                 result={scan.result}
                 confidence={scan.confidence}
-                timestamp={scan.timestamp}
-                imageUrl={scan.imageUrl}
+                timestamp={scan.created_at}
+                imageUrl={
+                  scan.file_url
+                    ? `${API_CONFIG.BASE_URL}${scan.file_url}`
+                    : undefined
+                }
+                onPress={() => router.push(`/modal?scanId=${scan.id}`)}
               />
             ))
           )}
@@ -323,7 +332,27 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  greeting: { fontSize: 14 },
+  userName: { fontSize: 24, fontWeight: '700', marginTop: 4 },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  titleBlock: {
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,

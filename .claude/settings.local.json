@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx expo install:*)",
+      "Bash(venvScriptspython.exe:*)",
+      "Bash(\"venv/Scripts/python.exe\" --version)",
+      "Bash(\"venv/Scripts/pip.exe\" install -r requirements.txt)",
+      "Bash(echo:*)",
+      "Bash(venv/Scripts/python.exe migrate.py:*)",
+      "Bash(venv/Scripts/pip.exe install:*)",
+      "Bash(venv/Scripts/pip.exe show:*)"
     ]
   }
 }

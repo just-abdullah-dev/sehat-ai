@@ -1,0 +1,612 @@
+Chest X-ray Validator
+Binary Classifier for Medical Image Gating
+Sehat-AI Project  —  Technical Documentation
+Base Model
+MobileNetV2 (ImageNet)	Framework
+TensorFlow / Keras
+Input Size
+224 x 224 x 3 (RGB)	Output
+Binary (sigmoid)
+ 
+1. Project Overview
+The Sehat-AI platform detects two diseases — Tuberculosis (TB) and Pneumonia — from chest X-ray images using separate deep learning models. A critical problem was identified: when users upload irrelevant images (selfies, documents, brain MRIs, etc.), the disease detection models still produce a prediction instead of rejecting the input.
+
+This document covers the training pipeline for a binary gatekeeper model that sits in front of both disease models. Its sole job is to answer one question:
+
+“Is this image a chest X-ray or not?”
+
+Why a separate validator model?
+Disease detection models are trained on medical images only. They have never seen cats, buildings, or random photos, so they have no concept of "invalid input". They will always output a score regardless. A dedicated binary classifier, trained on both X-rays and unrelated images, is the only reliable way to gate irrelevant uploads.
+
+1.1 System Architecture
+The validator is the first layer in the inference pipeline. Only images that pass the validator are forwarded to the disease models.
+
+Stage	Description
+1. Upload	User uploads any image through the frontend
+2. Validator	chest_xray_validator.h5 runs inference — returns 0.0 to 1.0
+3. Gate check	Score compared against saved threshold (from metadata JSON)
+4a. Reject	Score below threshold — return 400 error with clear message
+4b. Route	Score above threshold — forward to TB or Pneumonia model
+5. Result	Disease prediction returned to the user
+
+2. Dataset Strategy
+The model is trained on two classes. Choosing the right data for each class is critical to building a validator that rejects both completely unrelated images AND medical images that are not chest X-rays.
+
+2.1 Class 1 — Positive (chest_xray/)
+Source: Paul Mooney chest-xray-pneumonia dataset on Kaggle. This is the same dataset already used for the Pneumonia detection model, so no new download is needed for positives. Both NORMAL and PNEUMONIA subfolders are used since the validator only cares whether the image is a chest X-ray, not about disease status.
+
+•	Train/NORMAL — healthy chest X-rays
+•	Train/PNEUMONIA — pneumonia chest X-rays
+•	Test/NORMAL and Test/PNEUMONIA — for additional variety
+
+2,000 images are sampled from this pool to keep the dataset balanced and training fast on Colab free tier.
+
+2.2 Class 2 — Negative (not_xray/)
+The negative class must cover two distinct types of non-chest-X-ray images:
+
+Type A — Completely unrelated images: Natural scene photos (buildings, forests, streets, mountains). Source: Intel Image Classification dataset on Kaggle (~1,500 images sampled).
+
+Type B — Medical but not chest X-rays: Brain MRI scans. These are grayscale and look medical, so disease models would likely misclassify them. Source: Brain MRI Images for Brain Tumor Detection dataset on Kaggle (~500 images sampled).
+
+Why include brain MRIs in negatives?
+If the negative class only contains natural photos, the model learns to reject "colorful outdoor images" rather than learning what specifically makes something a chest X-ray. Brain MRIs are grayscale and structured like medical scans — adding them forces the model to learn chest-specific anatomy, not just "grayscale vs color".
+
+2.3 Final Dataset Balance
+Class	Count
+chest_xray/ (positive)	~2,000 images
+not_xray/ (negative)	~2,000 images (1,500 Intel + 500 Brain MRI)
+Total	~4,000 images
+Train / Validation split	80% / 20% (via ImageDataGenerator)
+
+3. Training Pipeline — Cell by Cell
+All cells are designed to be run sequentially in a Google Colab notebook with GPU runtime enabled (Runtime > Change runtime type > T4 GPU).
+
+Cell 1 — Install & Imports
+What this cell does
+Installs required Python packages and imports all necessary modules. TensorFlow is the deep learning framework. Keras (bundled inside TF) provides the high-level model building API. PIL handles image loading and resizing.
+
+Code
+!pip install tensorflow kaggle pillow -q
+ 
+import os
+import shutil
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+ 
+import tensorflow as tf
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras import layers, models
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.callbacks import (EarlyStopping,
+                                         ReduceLROnPlateau,
+                                         ModelCheckpoint)
+ 
+print('TensorFlow version:', tf.__version__)
+print('GPU available:', tf.config.list_physical_devices('GPU'))
+
+Technical notes
+•	The -q flag suppresses pip install output to keep Colab clean
+•	Confirm GPU is listed in the output before proceeding — training on CPU will be 5-10x slower
+
+Cell 2 — Kaggle Setup & Dataset Download
+What this cell does
+Authenticates with the Kaggle API using your account credentials and downloads all three datasets directly into Colab's /content/raw/ directory. The --unzip flag extracts the archives automatically.
+
+Code
+from google.colab import files
+files.upload()  # upload your kaggle.json when prompted
+ 
+os.makedirs('/root/.config/kaggle', exist_ok=True)
+os.system('cp kaggle.json /root/.config/kaggle/kaggle.json')
+os.system('chmod 600 /root/.config/kaggle/kaggle.json')
+ 
+# Chest X-ray Pneumonia (positives)
+!kaggle datasets download -d paultimothymooney/chest-xray-pneumonia \
+    -p /content/raw/ --unzip -q
+ 
+# Intel Image Classification (natural scene negatives)
+!kaggle datasets download -d puneet6060/intel-image-classification \
+    -p /content/raw/ --unzip -q
+ 
+# Brain MRI (medical-but-not-chest negatives)
+!kaggle datasets download -d navoneel/brain-mri-images-for-brain-tumor-detection \
+    -p /content/raw/ --unzip -q
+ 
+print('All datasets downloaded.')
+
+How to get kaggle.json
+•	Go to kaggle.com and log in to your account
+•	Click your profile picture > Settings > API section
+•	Click "Create New Token" — this downloads kaggle.json
+•	Upload this file when the files.upload() dialog appears in Colab
+
+Colab storage note
+Colab's /content/ directory resets when the session ends. If your session disconnects mid-training, you will need to re-run Cells 2 and 3. Consider copying your final .h5 to Google Drive immediately after Cell 10.
+
+Cell 3 — Build Dataset Folder Structure
+What this cell does
+Reorganizes the downloaded images into a clean two-class folder structure that Keras's ImageDataGenerator can read directly. The folder names become the class labels.
+
+Code
+random.seed(42)
+ 
+os.makedirs('/content/dataset/chest_xray', exist_ok=True)
+os.makedirs('/content/dataset/not_xray', exist_ok=True)
+ 
+# --- POSITIVES: Paul Mooney dataset ---
+xray_sources = [
+    '/content/raw/chest_xray/train/NORMAL',
+    '/content/raw/chest_xray/train/PNEUMONIA',
+    '/content/raw/chest_xray/test/NORMAL',
+    '/content/raw/chest_xray/test/PNEUMONIA',
+]
+xray_images = []
+for folder in xray_sources:
+    p = Path(folder)
+    if p.exists():
+        xray_images += (list(p.glob('*.jpeg')) +
+                        list(p.glob('*.jpg')) +
+                        list(p.glob('*.png')))
+ 
+random.shuffle(xray_images)
+for img_path in xray_images[:2000]:
+    shutil.copy(img_path, f'/content/dataset/chest_xray/{img_path.name}')
+ 
+print(f'Chest X-ray images: {len(os.listdir("/content/dataset/chest_xray"))}')
+ 
+# --- NEGATIVES: Intel scenes ---
+intel_base = Path('/content/raw/seg_train/seg_train')
+if not intel_base.exists():
+    intel_base = Path('/content/raw/seg_train')
+intel_images = []
+for folder in intel_base.iterdir():
+    if folder.is_dir():
+        intel_images += list(folder.glob('*.jpg'))
+ 
+random.shuffle(intel_images)
+for i, img_path in enumerate(intel_images[:1500]):
+    shutil.copy(img_path,
+        f'/content/dataset/not_xray/intel_{i}{img_path.suffix}')
+ 
+# --- NEGATIVES: Brain MRI ---
+brain_base = Path('/content/raw')
+brain_images = []
+for pattern in ['**/*.jpg', '**/*.jpeg', '**/*.png']:
+    brain_images += [
+        p for p in brain_base.glob(pattern)
+        if any(k in str(p).lower() for k in ['brain','tumor','mri'])
+        and 'chest_xray' not in str(p)
+        and 'seg_train' not in str(p)
+    ]
+ 
+random.shuffle(brain_images)
+for i, img_path in enumerate(brain_images[:500]):
+    shutil.copy(img_path,
+        f'/content/dataset/not_xray/brain_{i}{img_path.suffix}')
+ 
+pos = len(os.listdir('/content/dataset/chest_xray'))
+neg = len(os.listdir('/content/dataset/not_xray'))
+print(f'Final -> Positives: {pos} | Negatives: {neg} | Ratio: {pos/neg:.2f}')
+
+Technical notes
+•	random.seed(42) ensures the same 2,000 images are selected every time you run — important for reproducibility
+•	Intel images are prefixed intel_N and brain images brain_N to avoid filename collisions when copying into the same folder
+•	The ratio printed at the end should be close to 1.0 — a heavily imbalanced dataset would bias the model toward the majority class
+
+Cell 4 — Data Generators
+What this cell does
+Creates Keras ImageDataGenerator objects that stream images from disk in batches during training. Augmentation is applied only to the training set, not validation, to simulate realistic variation in X-ray image quality.
+
+Code
+IMG_SIZE = (224, 224)
+BATCH_SIZE = 32
+ 
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2,
+    rotation_range=10,
+    width_shift_range=0.05,
+    height_shift_range=0.05,
+    zoom_range=0.1,
+    horizontal_flip=True,
+    brightness_range=[0.85, 1.15],
+    fill_mode='nearest'
+)
+ 
+val_datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2
+)
+ 
+train_gen = train_datagen.flow_from_directory(
+    '/content/dataset/',
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    subset='training',
+    shuffle=True,
+    seed=42
+)
+ 
+val_gen = val_datagen.flow_from_directory(
+    '/content/dataset/',
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    subset='validation',
+    shuffle=False,
+    seed=42
+)
+ 
+print('Class indices:', train_gen.class_indices)
+
+Augmentation explained
+Parameter	Purpose
+rescale=1./255	Normalizes pixel values from [0,255] to [0,1]. Neural networks train better on small values
+rotation_range=10	Rotates image up to 10 degrees — handles slightly tilted X-rays
+brightness_range=[0.85, 1.15]	Simulates over/under-exposed X-rays from different machines
+zoom_range=0.1	Random 10% zoom — handles different patient distances from detector
+horizontal_flip=True	Flips image left-right — both orientations of chest X-rays are valid
+fill_mode='nearest'	Fills empty pixels after rotation/shift using edge pixel values
+
+Important: note the class_indices output
+The output shows something like {"chest_xray": 0, "not_xray": 1}. This tells you which integer label maps to which class. The order is alphabetical — chest_xray comes before not_xray so it gets label 0. Save this information — you will need it in your backend to interpret model output correctly.
+
+Cell 5 — Build Model
+What this cell does
+Constructs the neural network using Transfer Learning. MobileNetV2, pre-trained on ImageNet (1.4 million images, 1,000 classes), is used as the feature extractor. A custom classification head is added on top for binary output.
+
+Code
+def build_model():
+    base = MobileNetV2(
+        input_shape=(224, 224, 3),
+        include_top=False,
+        weights='imagenet'
+    )
+    base.trainable = False  # freeze base initially
+ 
+    model = models.Sequential([
+        base,
+        layers.GlobalAveragePooling2D(),
+        layers.BatchNormalization(),
+        layers.Dense(128, activation='relu'),
+        layers.Dropout(0.4),
+        layers.Dense(64, activation='relu'),
+        layers.Dropout(0.2),
+        layers.Dense(1, activation='sigmoid')
+    ])
+ 
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        loss='binary_crossentropy',
+        metrics=['accuracy',
+                 tf.keras.metrics.AUC(name='auc'),
+                 tf.keras.metrics.Precision(name='precision'),
+                 tf.keras.metrics.Recall(name='recall')]
+    )
+    return model
+ 
+model = build_model()
+model.summary()
+
+Architecture explained
+Layer	Purpose
+MobileNetV2 (frozen)	Extracts visual features — edges, textures, shapes. 2.3M parameters already trained on ImageNet
+GlobalAveragePooling2D	Converts the 7x7x1280 feature map to a flat 1280-vector by averaging each channel
+BatchNormalization	Normalizes activations to stabilize and speed up training
+Dense(128, relu)	Learns which combinations of features indicate a chest X-ray
+Dropout(0.4)	Randomly deactivates 40% of neurons during training to prevent overfitting
+Dense(64, relu)	Second feature combination layer for finer discrimination
+Dropout(0.2)	Lighter regularization on the smaller layer
+Dense(1, sigmoid)	Output neuron — sigmoid squashes output to [0,1], interpreted as probability
+
+Why MobileNetV2?
+•	Lightweight — 3.4MB model size, fast inference on CPU in your backend
+•	Strong feature extraction — trained on 1.4M diverse images
+•	include_top=False removes the ImageNet classification head, keeping only the feature extractor
+•	Works well for medical imaging tasks with limited training data
+
+Cell 6 — Phase 1 Training (Frozen Base)
+What this cell does
+Trains only the custom classification head while keeping MobileNetV2's weights frozen. This is the standard first phase of transfer learning — the head adapts to the new task without destabilizing the pre-trained features.
+
+Code
+callbacks_phase1 = [
+    EarlyStopping(
+        monitor='val_auc', patience=4,
+        restore_best_weights=True, mode='max'
+    ),
+    ReduceLROnPlateau(
+        monitor='val_loss', factor=0.5,
+        patience=2, min_lr=1e-6, verbose=1
+    ),
+    ModelCheckpoint(
+        '/content/best_model.h5', monitor='val_auc',
+        save_best_only=True, mode='max', verbose=1
+    )
+]
+ 
+print('Phase 1: Training with frozen base...')
+history1 = model.fit(
+    train_gen,
+    validation_data=val_gen,
+    epochs=15,
+    callbacks=callbacks_phase1
+)
+
+Callbacks explained
+Callback	Behaviour
+EarlyStopping	Stops training if val_auc does not improve for 4 consecutive epochs. Restores the best weights automatically — no manual checkpoint loading needed
+ReduceLROnPlateau	Halves the learning rate if val_loss plateaus for 2 epochs. Helps the model find a better minimum without overshooting
+ModelCheckpoint	Saves weights to best_model.h5 every time val_auc improves. Acts as a safety save in case of Colab disconnection
+
+Cell 7 — Phase 2 Fine-tuning
+What this cell does
+Unfreezes the last 30 layers of MobileNetV2 and trains them together with the classification head at a very low learning rate. This allows the feature extractor to adapt its higher-level features to medical image characteristics.
+
+Code
+model.load_weights('/content/best_model.h5')
+ 
+# Unfreeze the last 30 layers of MobileNetV2
+base_model = model.layers[0]
+base_model.trainable = True
+for layer in base_model.layers[:-30]:
+    layer.trainable = False
+ 
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+    loss='binary_crossentropy',
+    metrics=['accuracy', tf.keras.metrics.AUC(name='auc'),
+             tf.keras.metrics.Precision(name='precision'),
+             tf.keras.metrics.Recall(name='recall')]
+)
+ 
+callbacks_phase2 = [
+    EarlyStopping(
+        monitor='val_auc', patience=5,
+        restore_best_weights=True, mode='max'
+    ),
+    ReduceLROnPlateau(
+        monitor='val_loss', factor=0.3,
+        patience=2, min_lr=1e-7, verbose=1
+    ),
+    ModelCheckpoint(
+        '/content/best_model.h5', monitor='val_auc',
+        save_best_only=True, mode='max', verbose=1
+    )
+]
+ 
+print('Phase 2: Fine-tuning last 30 layers...')
+history2 = model.fit(
+    train_gen,
+    validation_data=val_gen,
+    epochs=10,
+    callbacks=callbacks_phase2
+)
+
+Why 1e-5 learning rate?
+Phase 1 uses lr=1e-3 because the head starts random and needs large updates to converge. Phase 2 uses lr=1e-5 (100x smaller) because MobileNetV2's weights are already well-trained — large updates would destroy the learned features. This technique is called discriminative fine-tuning.
+
+Why unfreeze only the last 30 layers?
+MobileNetV2 has 154 layers. Early layers detect generic patterns (edges, colors, gradients) that are universal across all image types. Later layers detect high-level, task-specific patterns. By unfreezing only the last 30 layers, we adapt the high-level features to medical imagery while preserving the generic low-level features.
+
+Cell 8 — Evaluate & Plot Training Curves
+What this cell does
+Loads the best saved weights, runs final evaluation on the validation set, and plots accuracy, AUC, and loss curves across both training phases. A vertical dashed line marks where fine-tuning began.
+
+Code
+model.load_weights('/content/best_model.h5')
+ 
+results = model.evaluate(val_gen, verbose=1)
+metrics = dict(zip(model.metrics_names, results))
+print('\n--- Validation Results ---')
+for k, v in metrics.items():
+    print(f'  {k}: {v:.4f}')
+ 
+def combine_history(h1, h2, key):
+    return h1.history[key] + h2.history[key]
+ 
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+ 
+for ax, metric, title in zip(axes,
+    ['accuracy', 'auc', 'loss'],
+    ['Accuracy', 'AUC', 'Loss']):
+    ax.plot(combine_history(history1, history2, metric),
+            label='Train')
+    ax.plot(combine_history(history1, history2, 'val_'+metric),
+            label='Validation')
+    ax.axvline(x=len(history1.history[metric])-1,
+               color='gray', linestyle='--', label='Fine-tune start')
+    ax.set_title(title)
+    ax.legend()
+ 
+plt.tight_layout()
+plt.savefig('/content/training_curves.png', dpi=150)
+plt.show()
+
+What to look for in the plots
+•	Accuracy / AUC: training and validation curves should converge. If training >> validation, the model is overfitting
+•	Loss: both curves should decrease and level off. A rising validation loss with decreasing training loss is a classic overfitting signal
+•	Fine-tune start line: you should see a small jump in performance after the fine-tuning phase begins
+•	Target: val_accuracy > 0.95, val_auc > 0.98 for this binary classification task
+
+Cell 9 — Confusion Matrix & Threshold Selection
+What this cell does
+Finds the optimal classification threshold by testing values from 0.3 to 0.9 and selecting the one that maximises F1-score. Plots a confusion matrix and prints a full classification report.
+
+Code
+from sklearn.metrics import (confusion_matrix, classification_report,
+                              f1_score, precision_score,
+                              recall_score, accuracy_score)
+import seaborn as sns
+ 
+val_gen.reset()
+y_pred_probs = model.predict(val_gen, verbose=1).flatten()
+y_true = val_gen.classes
+ 
+thresholds = np.arange(0.3, 0.9, 0.05)
+print('Threshold | Accuracy | Precision | Recall | F1')
+print('-' * 55)
+best_threshold, best_f1 = 0.5, 0
+ 
+for t in thresholds:
+    y_pred = (y_pred_probs >= t).astype(int)
+    acc   = accuracy_score(y_true, y_pred)
+    prec  = precision_score(y_true, y_pred, zero_division=0)
+    rec   = recall_score(y_true, y_pred, zero_division=0)
+    f1    = f1_score(y_true, y_pred, zero_division=0)
+    print(f'  {t:.2f}    |  {acc:.3f}   |   {prec:.3f}   |  {rec:.3f} | {f1:.3f}')
+    if f1 > best_f1:
+        best_f1, best_threshold = f1, t
+ 
+print(f'\nBest threshold: {best_threshold:.2f} (F1={best_f1:.4f})')
+ 
+y_pred_best = (y_pred_probs >= best_threshold).astype(int)
+cm = confusion_matrix(y_true, y_pred_best)
+class_names = list(val_gen.class_indices.keys())
+ 
+plt.figure(figsize=(6, 5))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=class_names, yticklabels=class_names)
+plt.title(f'Confusion Matrix (threshold={best_threshold:.2f})')
+plt.ylabel('True label')
+plt.xlabel('Predicted label')
+plt.tight_layout()
+plt.savefig('/content/confusion_matrix.png', dpi=150)
+plt.show()
+ 
+print(classification_report(y_true, y_pred_best,
+                            target_names=class_names))
+
+Understanding the threshold
+The model outputs a raw probability between 0 and 1. A threshold converts it to a binary prediction. The default 0.5 is rarely optimal. For this medical validator:
+
+•	A false negative (non-X-ray passes through as X-ray) is more harmful — it sends garbage to a disease model and produces a fake diagnosis
+•	A false positive (valid X-ray gets rejected) is less harmful — the user just needs to re-upload
+•	For this reason, consider manually increasing the best_threshold by 0.05 to 0.10 above the F1-optimal value for extra safety in production
+
+Cell 10 — Export Model & Metadata
+What this cell does
+Saves the final model as a .h5 file and generates a metadata JSON that captures everything the backend needs to load and use the model correctly — including the class index mapping and the optimal threshold.
+
+Code
+import json
+ 
+model.save('/content/chest_xray_validator.h5')
+print('Model saved: chest_xray_validator.h5')
+ 
+metadata = {
+    'model_name': 'chest_xray_validator',
+    'input_size': [224, 224],
+    'class_indices': train_gen.class_indices,
+    'best_threshold': float(best_threshold),
+    'val_accuracy': float(metrics['accuracy']),
+    'val_auc': float(metrics['auc']),
+    'base_model': 'MobileNetV2',
+    'trained_on': ('chest-xray-pneumonia + '
+                   'intel-image-classification + '
+                   'brain-mri')
+}
+ 
+with open('/content/chest_xray_validator_metadata.json', 'w') as f:
+    json.dump(metadata, f, indent=2)
+ 
+print(json.dumps(metadata, indent=2))
+ 
+from google.colab import files
+files.download('/content/chest_xray_validator.h5')
+files.download('/content/chest_xray_validator_metadata.json')
+files.download('/content/training_curves.png')
+files.download('/content/confusion_matrix.png')
+
+Why save metadata separately?
+The metadata JSON makes your backend self-documenting. Instead of hardcoding values, the backend reads threshold and class_indices at startup. This matters because:
+•	class_indices order is alphabetical and could change if folder names change
+•	The optimal threshold is specific to this training run and should not be a magic number in backend code
+•	val_accuracy and val_auc let you quickly assess model quality without re-running evaluation
+
+4. Backend Integration
+After training, place both files in your Python backend project directory:
+
+backend/
+  models/
+    chest_xray_validator.h5
+    chest_xray_validator_metadata.json
+    tb_model.h5
+    pneumonia_model.h5
+  main.py
+
+4.1 Model Loading & Inference
+import json
+import numpy as np
+from PIL import Image
+import io
+from tensorflow.keras.models import load_model
+ 
+# Load metadata
+with open('models/chest_xray_validator_metadata.json') as f:
+    meta = json.load(f)
+ 
+THRESHOLD = meta['best_threshold']
+CLASS_INDICES = meta['class_indices']
+# e.g. {'chest_xray': 0, 'not_xray': 1}
+# Score >= THRESHOLD means class index 1 (not_xray) if not_xray=1
+# Always derive XRAY_CLASS from metadata, never hardcode
+XRAY_CLASS_INDEX = CLASS_INDICES['chest_xray']
+ 
+# Load all models once at startup
+validator = load_model('models/chest_xray_validator.h5')
+tb_model  = load_model('models/tb_model.h5')
+pn_model  = load_model('models/pneumonia_model.h5')
+ 
+def preprocess(image_bytes, size=(224, 224)):
+    img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+    img = img.resize(size)
+    arr = np.array(img) / 255.0
+    return np.expand_dims(arr, axis=0)
+ 
+def validate_xray(image_bytes):
+    arr = preprocess(image_bytes)
+    score = float(validator.predict(arr, verbose=0)[0][0])
+    # If chest_xray=0, score close to 0 means chest X-ray
+    # Adjust comparison based on class index
+    if XRAY_CLASS_INDEX == 0:
+        is_xray = score <= (1 - THRESHOLD)
+    else:
+        is_xray = score >= THRESHOLD
+    return is_xray, score
+ 
+def predict(image_bytes, disease: str):
+    is_xray, validator_score = validate_xray(image_bytes)
+    if not is_xray:
+        return {
+            'valid': False,
+            'error': 'Not a chest X-ray. Please upload a valid image.',
+            'validator_score': round(validator_score, 4)
+        }
+    arr = preprocess(image_bytes)
+    model = tb_model if disease == 'tb' else pn_model
+    score = float(model.predict(arr, verbose=0)[0][0])
+    return {
+        'valid': True,
+        'disease': disease,
+        'prediction': 'positive' if score >= 0.5 else 'negative',
+        'confidence': round(score, 4),
+        'validator_score': round(validator_score, 4)
+    }
+
+5. Summary & Key Numbers
+Item	Value
+Model file	chest_xray_validator.h5
+Metadata file	chest_xray_validator_metadata.json
+Input shape	224 x 224 x 3 (RGB, normalized to [0,1])
+Output	Single float 0.0 to 1.0 (sigmoid probability)
+Expected val_accuracy	> 95%
+Expected val_AUC	> 0.98
+Approx. training time	20-30 minutes on Colab T4 GPU
+Model size	~14 MB (.h5)
+Threshold	Saved in metadata JSON — read at backend startup
+
+End of Document

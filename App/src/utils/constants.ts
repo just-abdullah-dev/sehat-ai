@@ -1,34 +1,51 @@
 // Application constants
 
 // API Configuration
+// Android emulator: 10.0.2.2 maps to host machine localhost
+// iOS simulator: localhost works directly
 export const API_CONFIG = {
   BASE_URL: __DEV__
-    ? 'http://localhost:8000/api'
-    : 'https://api.sehatai.com/api',
-  TIMEOUT: 10000,
+    ? 'http://192.168.100.70:8000/' //'http://10.0.2.2:8000'   // change to 'http://localhost:8000' for iOS simulator
+    : 'https://api.sehatai.com',
+  TIMEOUT: 30000,  // 30s to account for ML inference time
 };
 
-// Storage Keys
+// Secure Storage Keys (expo-secure-store — for sensitive data)
+export const SECURE_KEYS = {
+  ACCESS_TOKEN: 'sehatai_access_token',
+  REFRESH_TOKEN: 'sehatai_refresh_token',
+};
+
+// AsyncStorage Keys (for non-sensitive data)
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: '@sehatai_auth_token',
   USER_DATA: '@sehatai_user_data',
+  PROFILE_DATA: '@sehatai_profile_data',
   SETTINGS: '@sehatai_settings',
   CACHED_SCANS: '@sehatai_cached_scans',
   LANGUAGE: '@sehatai_language',
   THEME: '@sehatai_theme',
 };
 
-// API Endpoints
+// API Endpoints (must match backend exactly)
 export const API_ENDPOINTS = {
+  // Auth
   LOGIN: '/auth/login',
-  SIGNUP: '/auth/signup',
-  LOGOUT: '/auth/logout',
-  PREDICT: '/predict',
-  HISTORY: '/user/history',
-  REPORT: '/user/report',
-  PROFILE: '/user/profile',
-  UPDATE_PROFILE: '/user/update',
-  NOTIFICATIONS: '/user/notifications',
+  REGISTER: '/auth/register',
+  REFRESH: '/auth/refresh',
+
+  // Prediction  — append ?model=tb or ?model=pneumonia; /both/ for both models in one call
+  PREDICT: '/predict/',
+  PREDICT_BOTH: '/predict/both/',
+
+  // History — append ?model=tb|pneumonia for filtering
+  HISTORY: '/history/',
+
+  // Profile
+  PROFILE: '/user/profile/',
+  UPDATE_PROFILE: '/user/profile/',
+
+  // Reports — append /{scan_id}?language=en|ur
+  REPORT: 'report/',
 };
 
 // App Configuration
@@ -41,9 +58,10 @@ export const APP_CONFIG = {
 
 // Result Colors
 export const RESULT_COLORS = {
+  Positive: '#FF6B6B',
+  Normal: '#51CF66',
   TB: '#FF6B6B',
   Pneumonia: '#FFA94D',
-  Normal: '#51CF66',
 };
 
 // Chart Configuration

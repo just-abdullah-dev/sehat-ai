@@ -21,6 +21,7 @@ import { Input } from '@/components/Input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { loginSchema } from '@/src/utils/validation';
 import { StatusBar } from 'expo-status-bar';
+import type { LoginCredentials } from '@/src/types';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -34,13 +35,14 @@ export default function LoginScreen() {
     router.replace('/(tabs)');
   };
 
-  const handleLogin = async (values: { email: string; password: string }) => {
+  const handleLogin = async (values: LoginCredentials) => {
     setIsLoading(true);
     try {
       await login(values);
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+    } catch (error: unknown) {
+      const err = error as Error;
+      Alert.alert('Login Failed', err.message || 'Invalid credentials. Please check your email and password.');
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +69,7 @@ export default function LoginScreen() {
           </View>
 
           <Formik
-            initialValues={{ email: 'abdullah@test.com', password: 'Test@123' }}
+            initialValues={{ email: '', password: '' }}
             validationSchema={loginSchema}
             onSubmit={handleLogin}
           >
@@ -142,13 +144,6 @@ export default function LoginScreen() {
                   style={styles.guestButton}
                 />
 
-                <View style={styles.demoNotice}>
-                  <Text style={[styles.demoText, { color: colors.icon }]}>
-                    Demo Credentials:{'\n'}
-                    Email: abdullah@test.com{'\n'}
-                    Password: Test@123
-                  </Text>
-                </View>
               </View>
             )}
           </Formik>
@@ -226,16 +221,5 @@ const styles = StyleSheet.create({
   },
   guestButton: {
     marginBottom: 24,
-  },
-  demoNotice: {
-    marginTop: 32,
-    padding: 16,
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
-    borderRadius: 12,
-  },
-  demoText: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });

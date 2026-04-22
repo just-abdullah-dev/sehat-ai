@@ -16,12 +16,13 @@ class ImagePreprocessor:
         """
         self.target_size = target_size
 
-    def preprocess_image(self, image_bytes: bytes) -> np.ndarray:
+    def preprocess_image(self, image_bytes: bytes, target_size: Tuple[int, int] = None) -> np.ndarray:
         """
         Preprocess uploaded image for model inference.
 
         Args:
             image_bytes: Raw image bytes
+            target_size: Override (width, height); uses self.target_size if None
 
         Returns:
             Preprocessed image array ready for model input
@@ -29,6 +30,7 @@ class ImagePreprocessor:
         Raises:
             ValueError: If image cannot be processed
         """
+        size = target_size if target_size is not None else self.target_size
         try:
             # Load image from bytes
             image = Image.open(io.BytesIO(image_bytes))
@@ -38,7 +40,7 @@ class ImagePreprocessor:
                 image = image.convert("RGB")
 
             # Resize to target size
-            image = image.resize(self.target_size)
+            image = image.resize(size)
 
             # Convert to numpy array
             img_array = np.array(image)

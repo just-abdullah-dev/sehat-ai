@@ -117,8 +117,15 @@ Backend/
    ```
 
 3. **Build and run with Docker Compose**
+
+   Development (hot reload):
    ```bash
-   docker-compose up --build
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+   ```
+
+   Production-like (no reload, multi-worker):
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
    ```
 
 The API will be available at `http://localhost:8000`

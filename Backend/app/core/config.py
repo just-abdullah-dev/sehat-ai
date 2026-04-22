@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # File Upload
@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # ML Models
     TB_MODEL_PATH: str = "ml_models/tb_model.h5"
     PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia_model.h5"
+    CHEST_XRAY_VALIDATOR_MODEL_PATH: str = "ml_models/chest_xray_validator.h5"
+    CHEST_XRAY_VALIDATOR_METADATA_PATH: str = "ml_models/chest_xray_validator_metadata.json"
+    CHEST_XRAY_VALIDATOR_THRESHOLD: float = 0.5
 
     # Storage
     UPLOAD_DIR: str = "uploads"

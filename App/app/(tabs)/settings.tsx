@@ -9,9 +9,11 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
 import { Colors } from '@/constants/theme';
@@ -20,13 +22,27 @@ import { Button } from '@/components/Button';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { logout, isGuest } = useAuth();
+  const { logout, isGuest, user } = useAuth();
   const { theme, toggleTheme, language, setLanguage, settings, updateSettings } = useTheme();
   const colors = Colors[theme];
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     settings.notificationsEnabled
   );
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const avatarStorageKey = React.useMemo(() => `@sehatai_avatar_${user?.id ?? 'guest'}`, [user?.id]);
+
+  React.useEffect(() => {
+    const loadAvatar = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(avatarStorageKey);
+        setAvatarUri(saved);
+      } catch {
+        setAvatarUri(null);
+      }
+    };
+    loadAvatar();
+  }, [avatarStorageKey]);
 
   const handleToggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
@@ -132,10 +148,26 @@ export default function SettingsScreen() {
 
         {/* Header */}
         <View style={styles.header}>
+          <View>
+            <Text style={[styles.greeting, { color: colors.icon }]}>Welcome back,</Text>
+            <Text style={[styles.userName, { color: colors.text }]}>{isGuest ? 'Guest User' : (user?.username || 'User')}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => isGuest ? router.push('/login') : router.push('/(tabs)/profile')}
+          >
+            <View style={[styles.avatar, { backgroundColor: colors.tint + '20' }]}>
+              {avatarUri && !isGuest ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <Ionicons name={isGuest ? 'log-in-outline' : 'person'} size={24} color={colors.tint} />
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.titleBlock}>
           <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
-          <Text style={[styles.subtitle, { color: colors.icon }]}>
-            Manage your app preferences
-          </Text>
+          <Text style={[styles.subtitle, { color: colors.icon }]}>Manage your app preferences</Text>
         </View>
 
         {/* Appearance */}
@@ -239,13 +271,13 @@ export default function SettingsScreen() {
           <SettingItem
             icon="shield-checkmark-outline"
             title="Privacy Policy"
-            onPress={() => Alert.alert('Privacy Policy', 'Your data is encrypted and secure.')}
+            onPress={() => router.push('/privacy-policy')}
           />
 
           <SettingItem
             icon="document-text-outline"
             title="Terms of Service"
-            onPress={() => Alert.alert('Terms of Service', 'By using this app, you agree to our terms.')}
+            onPress={() => router.push('/terms-of-service')}
           />
         </Card>
 
@@ -311,14 +343,12 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
+         
           <Text style={[styles.footerText, { color: colors.icon }]}>
-            Sehat AI - TB & Pneumonia Detection
+            © 2026  Sehat AI - TB & Pneumonia Detection | Pak-Austria Fachhochschule
           </Text>
-          <Text style={[styles.footerText, { color: colors.icon }]}>
-            Developed by Abdullah, Abbas & Ikramullah
-          </Text>
-          <Text style={[styles.footerText, { color: colors.icon }]}>
-            © 2024 Pak-Austria Fachhochschule
+          <Text style={[styles.nameFooterText, { color: colors.icon }]}>
+            Built by Abdullah & Abbas
           </Text>
         </View>
       </ScrollView>
@@ -351,7 +381,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    marginBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  greeting: { fontSize: 14 },
+  userName: { fontSize: 24, fontWeight: '700', marginTop: 4 },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  titleBlock: {
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
@@ -416,5 +466,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 4,
     textAlign: 'center',
+  },
+  nameFooterText: {
+    fontSize: 10,
+    marginBottom: 4,
+    textAlign: 'center',
+    color: Colors.light.icon,
   },
 });
