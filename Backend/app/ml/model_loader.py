@@ -1,175 +1,250 @@
-import tensorflow as tf
-import numpy as np
-import logging
 import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+import numpy as np
+import tensorflow as tf
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 class ModelLoader:
-    """ML model loader and manager"""
+    """
+    ML model loader and manager for Sehat-AI.
+
+    Loads three models at startup:
+        1. Chest X-ray Validator - gates all uploads, rejects non-X-rays
+        2. TB Detection          - MobileNetV2, trained with CLAHE preprocessing
+        3. Pneumonia Detection   - separate architecture, standard preprocessing
+
+    Each model can have a companion metadata JSON with threshold and class mappings.
+    """
 
     def __init__(self):
         self.tb_model: Optional[tf.keras.Model] = None
         self.pneumonia_model: Optional[tf.keras.Model] = None
         self.chest_xray_validator_model: Optional[tf.keras.Model] = None
-        self.chest_xray_validator_threshold: float = settings.CHEST_XRAY_VALIDATOR_THRESHOLD
-        self.chest_xray_validator_class_indices: Dict[str, int] = {"chest_xray": 0, "not_xray": 1}
+
+        self._tb_config: Dict[str, Any] = {
+            "best_threshold": settings.TB_DEFAULT_THRESHOLD,
+            "class_indices": {"tb_negative": 0, "tb_positive": 1},
+            "preprocessing": "CLAHE (clipLimit=2.0, tileGrid=8x8) + rescale 1/255",
+            "base_model": "MobileNetV2",
+        }
+
+        self._pneumonia_config: Dict[str, Any] = {
+            "best_threshold": settings.PNEUMONIA_DEFAULT_THRESHOLD,
+            "class_indices": {"normal": 0, "pneumonia": 1},
+            "preprocessing": "rescale 1/255 (no CLAHE)",
+            "base_model": "unknown",
+        }
+
+        self._validator_config: Dict[str, Any] = {
+            "best_threshold": settings.CHEST_XRAY_VALIDATOR_THRESHOLD,
+            "class_indices": {"chest_xray": 0, "not_xray": 1},
+        }
+
         self._models_loaded = False
 
     def load_models(self):
         """
-        Load TB and Pneumonia models at startup.
-        Performs warm-up inference to reduce first prediction latency.
+        Load all models and their metadata at startup.
+
+        TB and pneumonia models are required. Validator is optional.
         """
         try:
-            logger.info("Loading ML models...")
+            logger.info("Loading Sehat-AI ML models...")
 
-            # Load TB model
-            tb_model_path = Path(settings.TB_MODEL_PATH)
-            if tb_model_path.exists():
-                self.tb_model = tf.keras.models.load_model(str(tb_model_path))
-                logger.info(f"TB model loaded from {tb_model_path}")
-            else:
-                logger.warning(f"TB model not found at {tb_model_path}")
-
-            # Load Pneumonia model
-            pneumonia_model_path = Path(settings.PNEUMONIA_MODEL_PATH)
-            if pneumonia_model_path.exists():
-                self.pneumonia_model = tf.keras.models.load_model(str(pneumonia_model_path))
-                logger.info(f"Pneumonia model loaded from {pneumonia_model_path}")
-            else:
-                logger.warning(f"Pneumonia model not found at {pneumonia_model_path}")
-
-            # Load Chest X-ray validator model
-            validator_model_path = Path(settings.CHEST_XRAY_VALIDATOR_MODEL_PATH)
-            if validator_model_path.exists():
-                self.chest_xray_validator_model = tf.keras.models.load_model(str(validator_model_path))
-                logger.info(f"Chest X-ray validator model loaded from {validator_model_path}")
-            else:
-                logger.warning(f"Chest X-ray validator model not found at {validator_model_path}")
-
-            # Load optional validator metadata
-            validator_metadata_path = Path(settings.CHEST_XRAY_VALIDATOR_METADATA_PATH)
-            if validator_metadata_path.exists():
-                with open(validator_metadata_path, "r", encoding="utf-8") as metadata_file:
-                    metadata = json.load(metadata_file)
-
-                raw_threshold = metadata.get("best_threshold")
-                if raw_threshold is not None:
-                    self.chest_xray_validator_threshold = float(raw_threshold)
-
-                raw_class_indices = metadata.get("class_indices")
-                if isinstance(raw_class_indices, dict) and raw_class_indices:
-                    self.chest_xray_validator_class_indices = {
-                        str(key): int(value) for key, value in raw_class_indices.items()
-                    }
-
-                logger.info(
-                    "Chest X-ray validator metadata loaded "
-                    f"(threshold={self.chest_xray_validator_threshold:.3f}, "
-                    f"class_indices={self.chest_xray_validator_class_indices})"
-                )
-            else:
-                logger.warning(
-                    "Chest X-ray validator metadata not found at "
-                    f"{validator_metadata_path}. Falling back to defaults "
-                    f"(threshold={self.chest_xray_validator_threshold:.3f}, "
-                    f"class_indices={self.chest_xray_validator_class_indices})"
-                )
-
-            # Perform warm-up inference
+            self._load_tb_model()
+            self._load_pneumonia_model()
+            self._load_validator_model()
             self._warmup_models()
 
             self._models_loaded = True
-            logger.info("All models loaded successfully")
+            logger.info(
+                "All models loaded - "
+                f"TB threshold={self._tb_config['best_threshold']}, "
+                f"Pneumonia threshold={self._pneumonia_config['best_threshold']}, "
+                f"Validator threshold={self._validator_config['best_threshold']}"
+            )
 
         except Exception as e:
-            logger.error(f"Error loading models: {str(e)}")
+            logger.error(f"Model loading failed: {str(e)}")
             raise
 
-    def _warmup_models(self):
+    def _load_tb_model(self):
+        model_path = Path(settings.TB_MODEL_PATH)
+        if not model_path.exists():
+            raise FileNotFoundError(
+                f"TB model not found at {model_path}. "
+                "Place tb_detection_model.h5 in the models/ directory."
+            )
+
+        self.tb_model = tf.keras.models.load_model(str(model_path))
+        logger.info(f"TB model loaded - {model_path}")
+
+        meta_path = Path(settings.TB_MODEL_METADATA_PATH)
+        if meta_path.exists():
+            self._tb_config = self._load_metadata(
+                meta_path,
+                self._tb_config,
+                threshold_key="best_threshold",
+                model_label="TB",
+            )
+        else:
+            logger.warning(
+                f"TB metadata not found at {meta_path}. "
+                f"Using default threshold={self._tb_config['best_threshold']}."
+            )
+
+    def _load_pneumonia_model(self):
+        model_path = Path(settings.PNEUMONIA_MODEL_PATH)
+        if not model_path.exists():
+            raise FileNotFoundError(
+                f"Pneumonia model not found at {model_path}. "
+                "Place pneumonia_detection_model.h5 in the models/ directory."
+            )
+
+        self.pneumonia_model = tf.keras.models.load_model(str(model_path))
+        logger.info(f"Pneumonia model loaded - {model_path}")
+
+        meta_path = Path(settings.PNEUMONIA_MODEL_METADATA_PATH)
+        if meta_path.exists():
+            self._pneumonia_config = self._load_metadata(
+                meta_path,
+                self._pneumonia_config,
+                threshold_key="best_threshold",
+                model_label="Pneumonia",
+            )
+        else:
+            logger.warning(
+                f"Pneumonia metadata not found at {meta_path}. "
+                f"Using default threshold={self._pneumonia_config['best_threshold']}."
+            )
+
+    def _load_validator_model(self):
+        model_path = Path(settings.CHEST_XRAY_VALIDATOR_MODEL_PATH)
+        if not model_path.exists():
+            logger.warning(
+                f"Validator model not found at {model_path}. "
+                "Chest X-ray validation will be skipped."
+            )
+            return
+
+        self.chest_xray_validator_model = tf.keras.models.load_model(str(model_path))
+        logger.info(f"Validator model loaded - {model_path}")
+
+        meta_path = Path(settings.CHEST_XRAY_VALIDATOR_METADATA_PATH)
+        if meta_path.exists():
+            self._validator_config = self._load_metadata(
+                meta_path,
+                self._validator_config,
+                threshold_key="best_threshold",
+                model_label="Validator",
+            )
+        else:
+            logger.warning(
+                f"Validator metadata not found at {meta_path}. "
+                f"Using default threshold={self._validator_config['best_threshold']}."
+            )
+
+    def _load_metadata(
+        self,
+        meta_path: Path,
+        current_config: Dict[str, Any],
+        threshold_key: str,
+        model_label: str,
+    ) -> Dict[str, Any]:
         """
-        Perform warm-up inference to reduce first prediction latency.
+        Load metadata JSON and merge into defaults.
+        Null or missing values keep defaults.
         """
         try:
-            logger.info("Performing warm-up inference...")
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
 
-            # Create dummy input (224x224x3 RGB image)
-            dummy_input = np.random.rand(1, 224, 224, 3).astype(np.float32)
+            config = dict(current_config)
 
-            if self.tb_model:
-                _ = self.tb_model.predict(dummy_input, verbose=0)
-                logger.info("TB model warm-up completed")
+            raw_threshold = meta.get(threshold_key)
+            if raw_threshold is not None:
+                config["best_threshold"] = float(raw_threshold)
 
-            if self.pneumonia_model:
-                _ = self.pneumonia_model.predict(dummy_input, verbose=0)
-                logger.info("Pneumonia model warm-up completed")
+            raw_indices = meta.get("class_indices")
+            if isinstance(raw_indices, dict) and raw_indices:
+                config["class_indices"] = {
+                    str(k): int(v) for k, v in raw_indices.items()
+                }
 
-            if self.chest_xray_validator_model:
-                _ = self.chest_xray_validator_model.predict(dummy_input, verbose=0)
-                logger.info("Chest X-ray validator warm-up completed")
+            for field in [
+                "base_model",
+                "preprocessing",
+                "dataset_balance",
+                "val_accuracy",
+                "val_auc",
+                "val_recall",
+                "val_precision",
+            ]:
+                if meta.get(field) is not None:
+                    config[field] = meta[field]
+
+            logger.info(
+                f"{model_label} metadata loaded - "
+                f"threshold={config['best_threshold']}, "
+                f"class_indices={config['class_indices']}"
+            )
+            return config
 
         except Exception as e:
-            logger.warning(f"Error during warm-up: {str(e)}")
+            logger.error(f"Failed to load {model_label} metadata from {meta_path}: {e}")
+            return current_config
+
+    def _warmup_models(self):
+        """Run dummy inference through each loaded model."""
+        logger.info("Running model warmup inference...")
+        dummy = np.random.rand(1, 224, 224, 3).astype(np.float32)
+
+        for model, label in [
+            (self.tb_model, "TB"),
+            (self.pneumonia_model, "Pneumonia"),
+            (self.chest_xray_validator_model, "Validator"),
+        ]:
+            if model is not None:
+                try:
+                    model.predict(dummy, verbose=0)
+                    logger.info(f"{label} model warmup complete")
+                except Exception as e:
+                    logger.warning(f"{label} model warmup failed: {e}")
 
     def get_tb_model(self) -> tf.keras.Model:
-        """
-        Get TB detection model.
-
-        Returns:
-            TB model instance
-
-        Raises:
-            RuntimeError: If model is not loaded
-        """
         if not self.tb_model:
             raise RuntimeError("TB model not loaded")
         return self.tb_model
 
+    def get_tb_config(self) -> Dict[str, Any]:
+        return dict(self._tb_config)
+
     def get_pneumonia_model(self) -> tf.keras.Model:
-        """
-        Get Pneumonia detection model.
-
-        Returns:
-            Pneumonia model instance
-
-        Raises:
-            RuntimeError: If model is not loaded
-        """
         if not self.pneumonia_model:
             raise RuntimeError("Pneumonia model not loaded")
         return self.pneumonia_model
 
+    def get_pneumonia_config(self) -> Dict[str, Any]:
+        return dict(self._pneumonia_config)
+
     def get_chest_xray_validator_model(self) -> tf.keras.Model:
-        """
-        Get Chest X-ray validator model.
-
-        Returns:
-            Chest X-ray validator model instance
-
-        Raises:
-            RuntimeError: If model is not loaded
-        """
         if not self.chest_xray_validator_model:
-            raise RuntimeError("Chest X-ray validator model not loaded")
+            raise RuntimeError("Validator model not loaded")
         return self.chest_xray_validator_model
 
     def get_chest_xray_validator_config(self) -> Dict[str, Any]:
-        """Get Chest X-ray validator threshold and class mapping."""
-        return {
-            "threshold": self.chest_xray_validator_threshold,
-            "class_indices": self.chest_xray_validator_class_indices,
-        }
+        return dict(self._validator_config)
 
     @property
     def models_loaded(self) -> bool:
-        """Check if models are loaded"""
         return self._models_loaded
 
 
-# Global model loader instance
 model_loader = ModelLoader()

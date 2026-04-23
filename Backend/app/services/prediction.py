@@ -16,18 +16,24 @@ class PredictionService:
 
     @staticmethod
     def _ensure_chest_xray(image_bytes: bytes) -> None:
-        """Reject non-chest-X-ray uploads before disease inference."""
-        validation = predictor.validate_chest_xray(image_bytes)
-        if not validation["is_chest_xray"]:
-            score = validation["score"]
-            threshold = validation["threshold"]
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    "Invalid image: uploaded file is not recognized as a chest X-ray. "
-                    f"validator_score={score:.4f}, threshold={threshold:.4f}"
-                ),
-            )
+        """
+        Reject non-chest-X-ray uploads before running disease models.
+        If the validator model is unavailable, skip validation gracefully.
+        """
+        try:
+            validation = predictor.validate_chest_xray(image_bytes)
+            if not validation["is_chest_xray"]:
+                score = validation["score"]
+                threshold = validation["threshold"]
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Invalid image: not recognized as a chest X-ray. "
+                        f"validator_score={score:.4f}, threshold={threshold:.4f}"
+                    ),
+                )
+        except RuntimeError as e:
+            logger.warning(f"Chest X-ray validation skipped: {e}")
 
     @staticmethod
     async def process_prediction(

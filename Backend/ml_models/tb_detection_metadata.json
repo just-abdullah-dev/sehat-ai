@@ -1,0 +1,27 @@
+{
+  "model_name": "tb_detection_model",
+  "version": "2.0",
+  "base_model": "MobileNetV2",
+  "input_size": [
+    224,
+    224
+  ],
+  "class_indices": {
+    "tb_negative": 0,
+    "tb_positive": 1
+  },
+  "best_threshold": 0.7499999999999998,
+  "threshold_strategy": "recall-optimized (>=0.90 recall target)",
+  "preprocessing": "CLAHE (clipLimit=2.0, tileGrid=8x8) + rescale 1/255",
+  "dataset_balance": "1:1 (TB positive : TB negative)",
+  "class_weights": {
+    "0": 1.0,
+    "1": 1.5
+  },
+  "val_accuracy": null,
+  "val_auc": null,
+  "val_recall": null,
+  "val_precision": null,
+  "trained_on": "tawsifurrahman TB dataset + paul mooney normals",
+  "note": "Input images MUST have CLAHE applied before inference"
+}

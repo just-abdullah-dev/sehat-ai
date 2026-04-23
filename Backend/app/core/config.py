@@ -24,10 +24,14 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: str = "jpg,jpeg,png"
 
     # ML Models
-    TB_MODEL_PATH: str = "ml_models/tb_model.h5"
-    PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia_model.h5"
+    TB_MODEL_PATH: str = "ml_models/tb_detection_model.h5"
+    TB_MODEL_METADATA_PATH: str = "ml_models/tb_detection_metadata.json"
+    PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia_detection_model.h5"
+    PNEUMONIA_MODEL_METADATA_PATH: str = "ml_models/pneumonia_detection_metadata.json"
     CHEST_XRAY_VALIDATOR_MODEL_PATH: str = "ml_models/chest_xray_validator.h5"
     CHEST_XRAY_VALIDATOR_METADATA_PATH: str = "ml_models/chest_xray_validator_metadata.json"
+    TB_DEFAULT_THRESHOLD: float = 0.75
+    PNEUMONIA_DEFAULT_THRESHOLD: float = 0.5
     CHEST_XRAY_VALIDATOR_THRESHOLD: float = 0.5
 
     # Storage
