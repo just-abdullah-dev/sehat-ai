@@ -59,10 +59,10 @@ class ModelLoader:
         try:
             logger.info("Loading Sehat-AI ML models...")
 
-            self._load_tb_model()
-            self._load_pneumonia_model()
+            # self._load_tb_model()
+            # self._load_pneumonia_model()
             self._load_validator_model()
-            self._warmup_models()
+            # self._warmup_models()
 
             self._models_loaded = True
             logger.info(
