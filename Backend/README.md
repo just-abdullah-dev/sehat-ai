@@ -8,7 +8,7 @@ AI-powered medical image analysis backend for Tuberculosis (TB) and Pneumonia de
 - **ML Model Inference**: TB and Pneumonia detection using TensorFlow/Keras models
 - **Image Upload**: Secure X-ray image upload and validation
 - **Scan History**: Track and manage prediction history
-- **PDF Reports**: Generate downloadable medical reports (English/Urdu)
+- **PDF Reports**: Generate downloadable medical reports (English)
 - **REST API**: Well-documented REST API with FastAPI
 - **Docker Support**: Containerized deployment
 - **PostgreSQL Database**: Robust data storage
@@ -177,7 +177,6 @@ Once the server is running, access:
 
 ### Reports
 - `GET /report/{scan_id}` - Download PDF report
-- `GET /report/{scan_id}?language=ur` - Get Urdu report
 
 ### Health
 - `GET /` - API information
@@ -282,6 +281,40 @@ The application can be deployed to:
 - **Render**
 - **AWS ECS**
 - **Azure Container Instances**
+- **Azure Container Apps**
+- **Azure App Service (Web App for Containers)**
+
+### Docker Image (Production)
+
+Build image:
+
+```bash
+docker build -t sehatai-backend:latest --target production .
+```
+
+Run image:
+
+```bash
+docker run --rm -p 8000:8000 \
+   --env-file .env \
+   -e PORT=8000 \
+   -e WEB_CONCURRENCY=2 \
+   sehatai-backend:latest
+```
+
+### Azure Deployment Notes
+
+- Container listens on `PORT` env variable (default `8000`).
+- Health endpoint for probes: `GET /health`.
+- Set `DEBUG=False` in production.
+- Use managed PostgreSQL and set `DATABASE_URL` with SSL when needed, for example:
+
+```env
+DATABASE_URL=postgresql://user:password@server.postgres.database.azure.com:5432/sehatai_db?sslmode=require
+```
+
+- Ensure `ALLOWED_ORIGINS` includes your deployed frontend URL(s).
+- Set a strong `JWT_SECRET_KEY`.
 
 ### Deployment Checklist
 

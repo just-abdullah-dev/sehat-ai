@@ -267,8 +267,8 @@ export const historyApi = {
 // ─── Report API ───────────────────────────────────────────────────────────────
 
 export const reportApi = {
-  getReportUrl(scanId: number, language: 'en' | 'ur' = 'en'): string {
-    return `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REPORT}${scanId}?language=${language}`;
+  getReportUrl(scanId: number): string {
+    return `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REPORT}${scanId}`;
   },
 
   async getAuthHeader(): Promise<string | null> {
