@@ -1,12 +1,15 @@
+import Constants from 'expo-constants';
+
 // Application constants
 
 // API Configuration
 // Android emulator: 10.0.2.2 maps to host machine localhost
 // iOS simulator: localhost works directly
+const expoApiUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
 export const API_CONFIG = {
   BASE_URL: __DEV__
     ? 'http://192.168.100.70:8000/' //'http://10.0.2.2:8000'   // change to 'http://localhost:8000' for iOS simulator
-    : 'https://api.sehatai.com',
+    : expoApiUrl ?? 'https://sehat-ai.teezeen.com',
   TIMEOUT: 30000,  // 30s to account for ML inference time
 };
 
