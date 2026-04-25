@@ -268,7 +268,7 @@ export const historyApi = {
 
 export const reportApi = {
   getReportUrl(scanId: number): string {
-    return `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REPORT}${scanId}`;
+    return `${API_CONFIG.BASE_URL}/${API_ENDPOINTS.REPORT}${scanId}`;
   },
 
   async getAuthHeader(): Promise<string | null> {

@@ -316,7 +316,7 @@ export default function HistoryScreen() {
                 timestamp={scan.created_at}
                 imageUrl={
                   scan.file_url
-                    ? `${API_CONFIG.BASE_URL}${scan.file_url}`
+                    ? `${API_CONFIG.BASE_URL}/${scan.file_url}`
                     : undefined
                 }
                 onPress={() => router.push(`/modal?scanId=${scan.id}`)}
