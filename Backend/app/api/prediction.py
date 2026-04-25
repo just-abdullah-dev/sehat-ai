@@ -14,11 +14,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/predict", tags=["Prediction"])
 
+def format_confidence(confidence: float) -> str:
+    percentage = confidence * 100
+    truncated = int(percentage * 100) / 100   # cut after 2 decimals (no rounding)
+    return f"{truncated:.2f}%"
 
 def _build_message(model_label: str, result_value: str, confidence: float) -> str:
     if result_value == "Positive":
-        return f"{model_label} detected with {confidence:.2%} confidence"
-    return f"No {model_label} detected. Scan appears normal with {confidence:.2%} confidence"
+        return f"{model_label} detected with {format_confidence(confidence)} confidence"
+    return f"No {model_label} detected. Scan appears normal with {format_confidence(confidence)} confidence"
 
 
 @router.post("/both/", response_model=BothPredictionResponse)
