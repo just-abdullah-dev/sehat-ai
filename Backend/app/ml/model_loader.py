@@ -38,8 +38,9 @@ class ModelLoader:
         self._pneumonia_config: Dict[str, Any] = {
             "best_threshold": settings.PNEUMONIA_DEFAULT_THRESHOLD,
             "class_indices": {"normal": 0, "pneumonia": 1},
-            "preprocessing": "rescale 1/255 (no CLAHE)",
-            "base_model": "unknown",
+            "preprocessing": "CLAHE (clipLimit=2.0, tileGrid=8x8) + EfficientNet preprocess_input",
+            "base_model": "EfficientNetB3",
+            "input_size": 300,
         }
 
         self._validator_config: Dict[str, Any] = {
@@ -204,13 +205,16 @@ class ModelLoader:
     def _warmup_models(self):
         """Run dummy inference through each loaded model."""
         logger.info("Running model warmup inference...")
-        dummy = np.random.rand(1, 224, 224, 3).astype(np.float32)
+        dummy_224 = np.random.rand(1, 224, 224, 3).astype(np.float32)
+        dummy_300 = np.random.rand(1, 300, 300, 3).astype(np.float32)
 
-        for model, label in [
-            (self.tb_model, "TB"),
-            (self.pneumonia_model, "Pneumonia"),
-            (self.chest_xray_validator_model, "Validator"),
-        ]:
+        warmup_targets = [
+            (self.tb_model, "TB", dummy_224),
+            (self.pneumonia_model, "Pneumonia", dummy_300),
+            (self.chest_xray_validator_model, "Validator", dummy_224),
+        ]
+
+        for model, label, dummy in warmup_targets:
             if model is not None:
                 try:
                     model.predict(dummy, verbose=0)

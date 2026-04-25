@@ -5,14 +5,17 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { LanguageProvider } from '@/src/context/LanguageProvider';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, isGuest } = useAuth();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const segments = useSegments();
   const router = useRouter();
 
@@ -37,7 +40,7 @@ function RootLayoutNav() {
   }, [isAuthenticated, isLoading, isGuest, segments, router]);
 
   if (isLoading) {
-    return <LoadingSpinner visible={true} message="Loading..." />;
+    return <LoadingSpinner visible={true} message={t('common.loading')} />;
   }
 
   return (
@@ -54,21 +57,21 @@ function RootLayoutNav() {
           name="modal"
           options={{
             presentation: 'modal',
-            title: 'Report Viewer',
+            title: t('stack.reportViewer'),
             headerShown: true,
           }}
         />
         <Stack.Screen
           name="privacy-policy"
           options={{
-            title: 'Privacy Policy',
+            title: t('stack.privacyPolicy'),
             headerShown: true,
           }}
         />
         <Stack.Screen
           name="terms-of-service"
           options={{
-            title: 'Terms of Service',
+            title: t('stack.termsOfService'),
             headerShown: true,
           }}
         />
@@ -80,10 +83,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }

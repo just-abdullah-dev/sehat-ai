@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker, { DateTimePickerEvent, DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
 import { Colors } from '@/constants/theme';
@@ -30,7 +31,8 @@ import type { User, ProfileUpdate } from '@/src/types';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, profile, updateProfile, isGuest } = useAuth();
+  const { t } = useTranslation();
+  const { user, profile, updateProfile, isGuest, logout } = useAuth();
   const { theme } = useTheme();
   const colors = Colors[theme];
   const profileData: User | null = profile || user;
@@ -180,6 +182,24 @@ export default function ProfileScreen() {
     const normalized = String(value).trim();
     if (!normalized) return 'Not provided';
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      t('settings.logout'),
+      t('settings.logoutConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.logout'),
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/login');
+          },
+        },
+      ]
+    );
   };
 
   if (isGuest) {
@@ -437,6 +457,17 @@ export default function ProfileScreen() {
             );
           }}
         </Formik>
+
+        {!isGuest && (
+          <View style={styles.profileLogoutSection}>
+            <Button
+              title={t('settings.logout')}
+              variant="outline"
+              onPress={handleLogout}
+              style={styles.profileLogoutButton}
+            />
+          </View>
+        )}
       </ScrollView>
 
       <LoadingSpinner visible={isLoading} message="Updating profile..." />
@@ -610,6 +641,12 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
+  },
+  profileLogoutSection: {
+    marginTop: 8,
+  },
+  profileLogoutButton: {
+    marginBottom: 0,
   },
   guestOverlay: {
     flex: 1,

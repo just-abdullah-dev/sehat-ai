@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import type { RegisterRequest } from '@/src/types';
 import { useTheme } from '@/src/context/ThemeContext';
+import { useLanguage } from '@/src/hooks/useLanguage';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
@@ -25,10 +27,15 @@ import { StatusBar } from 'expo-status-bar';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { register } = useAuth();
   const { theme } = useTheme();
+  const { isRTL } = useLanguage();
   const colors = Colors[theme];
   const [isLoading, setIsLoading] = useState(false);
+
+  const rowDirection = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
 
   const handleSignup = async (values: {
     name: string;
@@ -47,7 +54,10 @@ export default function SignupScreen() {
       router.replace('/(tabs)');
     } catch (error: unknown) {
       const err = error as Error;
-      Alert.alert('Signup Failed', err.message || 'Unable to create account. Please try again.');
+      Alert.alert(
+        t('auth.signupFailed'),
+        err.message || t('auth.unableToCreate')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -65,11 +75,11 @@ export default function SignupScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>
-              Create Account
+            <Text style={[styles.title, { color: colors.text, textAlign }]}>
+              {t('auth.createAccountTitle')}
             </Text>
-            <Text style={[styles.subtitle, { color: colors.icon }]}>
-              Join Sehat AI
+            <Text style={[styles.subtitle, { color: colors.icon, textAlign }]}>
+              {t('auth.createAccountSubtitle')}
             </Text>
           </View>
 
@@ -93,8 +103,8 @@ export default function SignupScreen() {
             }) => (
               <View style={styles.form}>
                 <Input
-                  label="Full Name"
-                  placeholder="Enter your full name"
+                  label={t('auth.fullName')}
+                  placeholder={t('auth.fullNamePlaceholder')}
                   value={values.name}
                   onChangeText={handleChange('name')}
                   onBlur={handleBlur('name')}
@@ -104,8 +114,8 @@ export default function SignupScreen() {
                 />
 
                 <Input
-                  label="Email"
-                  placeholder="Enter your email"
+                  label={t('auth.email')}
+                  placeholder={t('auth.emailPlaceholder')}
                   value={values.email}
                   onChangeText={handleChange('email')}
                   onBlur={handleBlur('email')}
@@ -117,8 +127,8 @@ export default function SignupScreen() {
                 />
 
                 <Input
-                  label="Password"
-                  placeholder="Create a password"
+                  label={t('auth.password')}
+                  placeholder={t('auth.createPasswordPlaceholder')}
                   value={values.password}
                   onChangeText={handleChange('password')}
                   onBlur={handleBlur('password')}
@@ -129,8 +139,8 @@ export default function SignupScreen() {
                 />
 
                 <Input
-                  label="Confirm Password"
-                  placeholder="Confirm your password"
+                  label={t('auth.confirmPassword')}
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
                   value={values.confirmPassword}
                   onChangeText={handleChange('confirmPassword')}
                   onBlur={handleBlur('confirmPassword')}
@@ -141,45 +151,32 @@ export default function SignupScreen() {
                 />
 
                 <Button
-                  title="Create Account"
+                  title={t('auth.signupButton')}
                   onPress={handleSubmit as any}
                   loading={isLoading}
                   style={styles.signupButton}
                 />
 
-                <View style={styles.loginContainer}>
-                  <Text style={[styles.loginText, { color: colors.icon }]}>
-                    Already have an account?{' '}
+                <View style={[styles.loginContainer, { flexDirection: rowDirection }]}>
+                  <Text style={[styles.loginText, { color: colors.icon, textAlign }]}>
+                    {t('auth.alreadyHaveAccount')}{' '}
                   </Text>
                   <TouchableOpacity onPress={() => router.back()}>
                     <Text style={[styles.loginLink, { color: colors.tint }]}>
-                      Login
+                      {t('auth.login')}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.terms, { color: colors.icon }]}>
-                  By signing up, you agree to our{' '}
-                  <Text
-                    style={{ color: colors.tint }}
-                    onPress={() => router.push('/terms-of-service')}
-                  >
-                    Terms of Service
-                  </Text>{' '}
-                  and{' '}
-                  <Text
-                    style={{ color: colors.tint }}
-                    onPress={() => router.push('/privacy-policy')}
-                  >
-                    Privacy Policy
-                  </Text>
+                <Text style={[styles.terms, { color: colors.icon, textAlign }]}>
+                  {t('auth.agreeTerms')}
                 </Text>
               </View>
             )}
           </Formik>
         </ScrollView>
 
-        <LoadingSpinner visible={isLoading} message="Creating account..." />
+        <LoadingSpinner visible={isLoading} message={t('auth.creatingAccount')} />
       </KeyboardAvoidingView>
     </>
   );
@@ -202,11 +199,9 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     marginBottom: 8,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
   },
   form: {
     width: '100%',
@@ -216,7 +211,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginContainer: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -230,7 +224,6 @@ const styles = StyleSheet.create({
   },
   terms: {
     fontSize: 12,
-    textAlign: 'center',
     lineHeight: 18,
   },
 });

@@ -3,13 +3,14 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { HapticTab } from '@/components/haptic-tab';
 import { useTheme } from '@/src/context/ThemeContext';
-import { useAuth } from '@/src/context/AuthContext';
 import { Colors } from '@/constants/theme';
 
 export default function TabLayout() {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const colors = Colors[theme];
 
   return (
@@ -28,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('navigation.home'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" size={size || 24} color={color} />
           ),
@@ -37,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: t('navigation.history'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="time" size={size || 24} color={color} />
           ),
@@ -46,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('navigation.profile'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size || 24} color={color} />
           ),
@@ -55,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('navigation.settings'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings" size={size || 24} color={color} />
           ),

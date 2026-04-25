@@ -16,12 +16,13 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLanguage } from '@/src/hooks/useLanguage';
 import { useTheme } from '@/src/context/ThemeContext';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { predictionApi, historyApi } from '@/src/services/api';
 import { APP_CONFIG, API_CONFIG } from '@/src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,9 +30,13 @@ import type { PredictionResponse, DiseaseSelection, ScanHistoryItem } from '@/sr
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
   const { user, isGuest, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const rowDirection = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -133,8 +138,8 @@ export default function HomeScreen() {
     const { status: galleryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (cameraStatus !== 'granted' || galleryStatus !== 'granted') {
       Alert.alert(
-        'Permissions Required',
-        'Please grant camera and gallery permissions to upload X-rays.'
+        t('common.error'),
+        t('home.uploadSubtitle')
       );
     }
   };
@@ -180,7 +185,7 @@ export default function HomeScreen() {
         const fileInfo = await fetch(imageUri);
         const blob = await fileInfo.blob();
         if (blob.size > APP_CONFIG.MAX_IMAGE_SIZE) {
-          Alert.alert('File Too Large', 'Please select an image smaller than 10MB');
+          Alert.alert(t('common.error'), 'Please select an image smaller than 10MB');
           return;
         }
         setSelectedImage(imageUri);
@@ -189,7 +194,7 @@ export default function HomeScreen() {
         setPneumoniaResult(null);
       }
     } catch {
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      Alert.alert(t('common.error'), 'Failed to pick image. Please try again.');
     }
   };
 
@@ -201,16 +206,16 @@ export default function HomeScreen() {
       setAnalysisError(null);
     }
 
-    Alert.alert('Upload X-ray', 'Choose image source', [
+    Alert.alert(t('home.uploadTitle'), 'Choose image source', [
       { text: 'Camera', onPress: () => pickImage('camera') },
       { text: 'Gallery', onPress: () => pickImage('gallery') },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
   const analyzeImage = async () => {
     if (!selectedImage) {
-      Alert.alert('No Image', 'Please select an X-ray image first.');
+      Alert.alert(t('common.error'), 'Please select an X-ray image first.');
       return;
     }
 
@@ -227,7 +232,7 @@ export default function HomeScreen() {
         setPneumoniaResult(pneumonia ?? null);
         if (!tb && !pneumonia) {
           setAnalysisError('Both predictions failed. Please try again.');
-          Alert.alert('Analysis Failed', 'Both predictions failed. Please try again.');
+          Alert.alert(t('common.error'), 'Both predictions failed. Please try again.');
         }
       } else if (diseaseSelection === 'tb') {
         // setAnalyzingModel('Running TB analysis...');
@@ -246,7 +251,7 @@ export default function HomeScreen() {
     } catch (err: unknown) {
       const error = err as Error;
       setAnalysisError(error.message || 'Prediction failed. Please try again.');
-      Alert.alert('Analysis Failed', error.message || 'Please try again.');
+      Alert.alert(t('common.error'), error.message || 'Please try again.');
     } finally {
       setIsAnalyzing(false);
       setAnalyzingModel('');
@@ -283,25 +288,25 @@ export default function HomeScreen() {
         {/* Guest Banner */}
         {isGuest && (
           <TouchableOpacity
-            style={[styles.guestBanner, { backgroundColor: colors.tint + '15' }]}
+            style={[styles.guestBanner, { backgroundColor: colors.tint + '15', flexDirection: rowDirection }]}
             onPress={() => router.push('/login')}
           >
             <Ionicons name="person-add-outline" size={20} color={colors.tint} />
-            <Text style={[styles.guestBannerText, { color: colors.tint }]}>
-              Sign in to save scan history & download reports
+            <Text style={[styles.guestBannerText, { color: colors.tint, textAlign }]}>
+              {t('home.guestBanner')}
             </Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.tint} />
+            <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.tint} />
           </TouchableOpacity>
         )}
 
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { flexDirection: rowDirection }]}>
           <View>
-            <Text style={[styles.greeting, { color: colors.icon }]}>
-              {isGuest ? 'Welcome,' : 'Welcome back,'}
+            <Text style={[styles.greeting, { color: colors.icon, textAlign }]}>
+              {isGuest ? t('home.welcome') : t('home.welcomeBack')}
             </Text>
-            <Text style={[styles.userName, { color: colors.text }]}>
-              {isGuest ? 'Guest User' : (user?.username || 'User')}
+            <Text style={[styles.userName, { color: colors.text, textAlign }]}>
+              {isGuest ? t('home.guestUser') : (user?.username || 'User')}
             </Text>
           </View>
           <TouchableOpacity
@@ -323,10 +328,10 @@ export default function HomeScreen() {
             <Ionicons name="cloud-upload-outline" size={48} color={colors.tint} />
           </View>
           <Text style={[styles.uploadTitle, { color: colors.text }]}>
-            Upload Chest X-ray
+            {t('home.uploadTitle')}
           </Text>
           <Text style={[styles.uploadSubtitle, { color: colors.icon }]}>
-            AI-powered detection for TB and Pneumonia
+            {t('home.uploadSubtitle')}
           </Text>
 
           {/* Selected image preview */}
@@ -379,7 +384,7 @@ export default function HomeScreen() {
           )}
 
           <Button
-            title={selectedImage ? 'Change Image' : 'Select X-ray Image'}
+            title={selectedImage ? t('home.changeImage') : t('home.selectImage')}
             variant={selectedImage ? 'outline' : 'primary'}
             onPress={showImageSourceOptions}
             style={styles.uploadButton}
@@ -391,7 +396,7 @@ export default function HomeScreen() {
         {showSelection && (
           <Card style={styles.selectionCard}>
             <Text style={[styles.selectionTitle, { color: colors.text }]}>
-              Select Analysis Type
+              {t('home.selectionTitle')}
             </Text>
             <View style={styles.selectionRow}>
               {(['both', 'tb', 'pneumonia'] as DiseaseSelection[]).map(option => (
@@ -413,7 +418,7 @@ export default function HomeScreen() {
                       { color: diseaseSelection === option ? '#fff' : colors.tint },
                     ]}
                   >
-                    {option === 'both' ? 'Both' : option === 'tb' ? 'TB Only' : 'Pneumonia Only'}
+                    {option === 'both' ? t('home.both') : option === 'tb' ? t('home.tbOnly') : t('home.pneumoniaOnly')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -423,7 +428,7 @@ export default function HomeScreen() {
               <View style={[styles.errorCard, { backgroundColor: colors.tint + '14' }]}>
                 <Text style={[styles.errorText, { color: colors.text }]}>{analysisError}</Text>
                 <Button
-                  title="Rerun"
+                  title={t('home.rerun')}
                   size="small"
                   variant="outline"
                   onPress={analyzeImage}
@@ -433,7 +438,7 @@ export default function HomeScreen() {
               </View>
             ) : (
               <Button
-                title="Analyze X-ray"
+                title={t('home.analyze')}
                 onPress={analyzeImage}
                 loading={isAnalyzing}
                 style={styles.analyzeButton}
@@ -457,7 +462,7 @@ export default function HomeScreen() {
             style={styles.section}
             onLayout={(e) => setResultsY(e.nativeEvent.layout.y)}
           >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Analysis Results</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.analysisResults')}</Text>
 
             {/* TB Result */}
             {tbResult && (
@@ -529,7 +534,7 @@ export default function HomeScreen() {
                         color={tbResult.scan_id != null ? '#51CF66' : '#FF6B6B'}
                       />
                       <Text style={[styles.saveStatusText, { color: tbResult.scan_id != null ? '#51CF66' : '#FF6B6B' }]}>
-                        {tbResult.scan_id != null ? 'Saved to history' : 'Not saved to history'}
+                          {tbResult.scan_id != null ? t('home.savedToHistory') : t('home.notSavedToHistory')}
                       </Text>
                     </View>
                   )}
@@ -551,7 +556,7 @@ export default function HomeScreen() {
                   >
                     <Ionicons name="lock-closed-outline" size={14} color={colors.icon} />
                     <Text style={[styles.loginPromptText, { color: colors.icon }]}>
-                      Sign in to download report
+                      {t('home.signInForReport')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -628,7 +633,7 @@ export default function HomeScreen() {
                         color={pneumoniaResult.scan_id != null ? '#51CF66' : '#FF6B6B'}
                       />
                       <Text style={[styles.saveStatusText, { color: pneumoniaResult.scan_id != null ? '#51CF66' : '#FF6B6B' }]}>
-                        {pneumoniaResult.scan_id != null ? 'Saved to history' : 'Not saved to history'}
+                          {pneumoniaResult.scan_id != null ? t('home.savedToHistory') : t('home.notSavedToHistory')}
                       </Text>
                     </View>
                   )}
@@ -650,7 +655,7 @@ export default function HomeScreen() {
                   >
                     <Ionicons name="lock-closed-outline" size={14} color={colors.icon} />
                     <Text style={[styles.loginPromptText, { color: colors.icon }]}>
-                      Sign in to download report
+                      {t('home.signInForReport')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -677,9 +682,9 @@ export default function HomeScreen() {
         {lastScan && isAuthenticated && !hasResults && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Last Scan</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.lastScan')}</Text>
               <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
-                <Text style={[styles.viewAll, { color: colors.tint }]}>View All</Text>
+                <Text style={[styles.viewAll, { color: colors.tint }]}>{t('home.viewAll')}</Text>
               </TouchableOpacity>
             </View>
             <Card style={styles.lastScanCard}>
@@ -728,7 +733,7 @@ export default function HomeScreen() {
 
         {/* ─── Quick Actions ─────────────────────────────────── */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.quickActions')}</Text>
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={[

@@ -49,45 +49,22 @@ export default function HistoryScreen() {
     loadAvatar();
   }, [avatarStorageKey]);
 
-  // Guest restriction overlay
-  if (isGuest) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.guestOverlay}>
-          <View style={[styles.guestContent, { backgroundColor: theme === 'dark' ? '#2A2A2A' : '#fff' }]}>
-            <View style={[styles.guestIconContainer, { backgroundColor: colors.tint + '20' }]}>
-              <Ionicons name="lock-closed" size={48} color={colors.tint} />
-            </View>
-            <Text style={[styles.guestTitle, { color: colors.text }]}>
-              Sign In Required
-            </Text>
-            <Text style={[styles.guestSubtitle, { color: colors.icon }]}>
-              Create an account or sign in to view your scan history and track your health progress.
-            </Text>
-            <Button
-              title="Sign In"
-              onPress={() => router.push('/login')}
-              style={styles.signInButton}
-            />
-            <TouchableOpacity onPress={() => router.push('/signup')}>
-              <Text style={[styles.signUpLink, { color: colors.tint }]}>
-                Don't have an account? Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
   const [scans, setScans] = useState<ScanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
 
-  useEffect(() => { loadHistory(); }, []);
+  useEffect(() => {
+    if (!isGuest) {
+      loadHistory();
+    }
+  }, [isGuest]);
 
   const loadHistory = async () => {
+    if (isGuest) {
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const response = await historyApi.getHistory();
@@ -100,10 +77,13 @@ export default function HistoryScreen() {
   };
 
   const onRefresh = useCallback(async () => {
+    if (isGuest) {
+      return;
+    }
     setIsRefreshing(true);
     await loadHistory();
     setIsRefreshing(false);
-  }, []);
+  }, [isGuest]);
 
   const getFilteredScans = (): ScanHistoryItem[] => {
     if (filter === 'all') return scans;
@@ -149,6 +129,35 @@ export default function HistoryScreen() {
   };
 
   const filteredScans = getFilteredScans();
+
+  // Guest restriction overlay
+  if (isGuest) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.guestOverlay}>
+          <View style={[styles.guestContent, { backgroundColor: theme === 'dark' ? '#2A2A2A' : '#fff' }]}>
+            <View style={[styles.guestIconContainer, { backgroundColor: colors.tint + '20' }]}>
+              <Ionicons name="lock-closed" size={48} color={colors.tint} />
+            </View>
+            <Text style={[styles.guestTitle, { color: colors.text }]}>
+              Sign In Required
+            </Text>
+            <Text style={[styles.guestSubtitle, { color: colors.icon }]}>
+              Create an account or sign in to view your scan history and track your health progress.
+            </Text>
+            <Button
+              title="Sign In"
+              onPress={() => router.push('/login')}
+              style={styles.signInButton}
+            />
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={[styles.signUpLink, { color: colors.tint }]}>Don't have an account? Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   if (isLoading) {
     return <LoadingSpinner visible={true} message="Loading history..." />;
