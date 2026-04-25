@@ -1,5 +1,57 @@
 # Quick Start Guide
 
+## Always Start Here (Every Time You Open The Project)
+
+Run these commands from the Backend folder.
+
+### Windows PowerShell
+
+```powershell
+cd "c:\Users\HC\Downloads\WORK\Sehat-AI-FYP\sehat-ai\Backend"
+
+# First-time only (or if venv is broken):
+py -3.11 -m venv venv
+
+# Activate environment:
+.\venv\Scripts\Activate.ps1
+
+# Install/refresh dependencies:
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install email-validator
+
+# Start API:
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### Mac/Linux
+
+```bash
+cd Backend
+
+# First-time only:
+python3.11 -m venv venv
+
+# Activate environment:
+source venv/bin/activate
+
+# Install/refresh dependencies:
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install email-validator
+
+# Start API:
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+When running correctly:
+- API docs: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/health
+
+Important:
+- Do not run `python .\app\main.py` or `python app/main.py`
+- Use module mode: `python -m uvicorn app.main:app ...` or `python -m app.main`
+
 ## Get Started in 5 Minutes
 
 ### Prerequisites
@@ -23,6 +75,7 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+pip install email-validator
 ```
 
 ### Step 2: Configure Environment
@@ -52,7 +105,7 @@ ml_models/
 python -m app.main
 
 # OR using uvicorn
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ### Step 5: Test the API
@@ -63,9 +116,11 @@ Open your browser and visit:
 
 ---
 
-## Using Docker Compose (Recommended)
+## Using Docker Compose
 
-Even faster setup with Docker:
+Run these commands from the `Backend` folder.
+
+### Development (hot reload)
 
 ```bash
 # 1. Setup environment
@@ -73,11 +128,31 @@ cp .env.example .env
 
 # 2. Add ML models to ml_models/
 
-# 3. Start everything
-docker-compose up --build
+# 3. Start DB + backend in development mode
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-That's it! The API will be running at http://localhost:8000
+### Production-like run (no reload, multi-worker)
+
+```bash
+# 1. Setup environment
+cp .env.example .env
+
+# 2. Add ML models to ml_models/
+
+# 3. Start DB + backend in production mode
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+Stop containers:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+# or
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+```
+
+The API will run at http://localhost:8000
 
 ---
 
@@ -122,6 +197,13 @@ curl -X GET "http://localhost:8000/history/" \
 ---
 
 ## Troubleshooting
+
+**No module named 'app'?**
+- You are likely running the file directly
+- Use: `python -m uvicorn app.main:app --reload`
+
+**email-validator is not installed?**
+- Run: `pip install email-validator`
 
 **Database Connection Error?**
 - Make sure PostgreSQL is running

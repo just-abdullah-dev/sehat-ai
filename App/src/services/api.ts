@@ -1,178 +1,290 @@
-// API Service Layer - Ready for real backend integration
-// Currently uses mock API, switch to real API by setting USE_MOCK_API to false
+/**
+ * SehatAI API Service
+ * Real backend integration.
+ * Handles: JWT auth with refresh, guest predictions, profile, history, reports.
+ */
 
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import { API_CONFIG, API_ENDPOINTS } from '@/src/utils/constants';
-import { storage } from '@/src/utils/storage';
-import { mockApi } from './mockApi';
+import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+import * as SecureStore from 'expo-secure-store';
+import { API_CONFIG, API_ENDPOINTS, SECURE_KEYS } from '../utils/constants';
 import type {
-  AuthResponse,
+  AuthTokens,
   LoginCredentials,
-  SignupData,
+  RegisterRequest,
   User,
-  Scan,
-  PredictionResult,
-  Notification,
-} from '@/src/types';
+  ProfileUpdate,
+  PredictionResponse,
+  ScanHistoryResponse,
+  DiseaseModel,
+} from '../types';
 
-// Toggle this to switch between mock and real API
-const USE_MOCK_API = true;
+// ─── Axios Instance ───────────────────────────────────────────────────────────
 
-class ApiService {
-  private client: AxiosInstance;
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: API_CONFIG.BASE_URL,
-      timeout: API_CONFIG.TIMEOUT,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+// Token refresh concurrency guard
+let isRefreshing = false;
+let refreshSubscribers: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = [];
+let onAuthFailure: (() => Promise<void> | void) | null = null;
 
-    // Request interceptor to add auth token
-    this.client.interceptors.request.use(
-      async (config) => {
-        const token = await storage.getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
+export const setAuthFailureHandler = (handler: (() => Promise<void> | void) | null) => {
+  onAuthFailure = handler;
+};
 
-    // Response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid
-          await storage.clearAll();
-          // Redirect to login will be handled by AuthContext
-        }
-        return Promise.reject(error);
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const responseData = error.response?.data as
+      | { detail?: string; message?: string }
+      | string
+      | undefined;
+
+    if (typeof responseData === 'string' && responseData.trim().length > 0) {
+      return responseData;
+    }
+
+    if (responseData && typeof responseData === 'object') {
+      if (typeof responseData.detail === 'string' && responseData.detail.trim().length > 0) {
+        return responseData.detail;
       }
-    );
-  }
-
-  // Authentication APIs
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    if (USE_MOCK_API) {
-      return mockApi.login(credentials);
-    }
-
-    const response = await this.client.post<AuthResponse>(
-      API_ENDPOINTS.LOGIN,
-      credentials
-    );
-    return response.data;
-  }
-
-  async signup(data: SignupData): Promise<AuthResponse> {
-    if (USE_MOCK_API) {
-      return mockApi.signup(data);
-    }
-
-    const response = await this.client.post<AuthResponse>(
-      API_ENDPOINTS.SIGNUP,
-      data
-    );
-    return response.data;
-  }
-
-  async logout(): Promise<void> {
-    if (USE_MOCK_API) {
-      return mockApi.logout();
-    }
-
-    await this.client.post(API_ENDPOINTS.LOGOUT);
-  }
-
-  // Prediction APIs
-  async uploadAndPredict(imageUri: string): Promise<PredictionResult> {
-    if (USE_MOCK_API) {
-      return mockApi.predict(imageUri);
-    }
-
-    const formData = new FormData();
-    formData.append('file', {
-      uri: imageUri,
-      type: 'image/jpeg',
-      name: 'xray.jpg',
-    } as any);
-
-    const response = await this.client.post<PredictionResult>(
-      API_ENDPOINTS.PREDICT,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      if (typeof responseData.message === 'string' && responseData.message.trim().length > 0) {
+        return responseData.message;
       }
-    );
-    return response.data;
-  }
-
-  // History APIs
-  async getHistory(): Promise<Scan[]> {
-    if (USE_MOCK_API) {
-      const user = await storage.getUser();
-      return mockApi.getHistory(user?.id || '1');
     }
 
-    const response = await this.client.get<Scan[]>(API_ENDPOINTS.HISTORY);
-    return response.data;
-  }
-
-  // Profile APIs
-  async getProfile(): Promise<User> {
-    if (USE_MOCK_API) {
-      const user = await storage.getUser();
-      return mockApi.getProfile(user?.id || '1');
+    if (typeof error.message === 'string' && error.message.trim().length > 0) {
+      return error.message;
     }
-
-    const response = await this.client.get<User>(API_ENDPOINTS.PROFILE);
-    return response.data;
   }
 
-  async updateProfile(data: Partial<User>): Promise<User> {
-    if (USE_MOCK_API) {
-      const user = await storage.getUser();
-      return mockApi.updateProfile(user?.id || '1', data);
-    }
-
-    const response = await this.client.put<User>(
-      API_ENDPOINTS.UPDATE_PROFILE,
-      data
-    );
-    return response.data;
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
   }
 
-  // Notification APIs
-  async getNotifications(): Promise<Notification[]> {
-    if (USE_MOCK_API) {
-      const user = await storage.getUser();
-      return mockApi.getNotifications(user?.id || '1');
-    }
-
-    const response = await this.client.get<Notification[]>(
-      API_ENDPOINTS.NOTIFICATIONS
-    );
-    return response.data;
-  }
-
-  // Report APIs
-  async generateReport(scanId: string): Promise<string> {
-    if (USE_MOCK_API) {
-      return mockApi.generateReport(scanId);
-    }
-
-    const response = await this.client.get<{ url: string }>(
-      `${API_ENDPOINTS.REPORT}/${scanId}`
-    );
-    return response.data.url;
-  }
+  return fallback;
 }
 
-export const api = new ApiService();
+function subscribeTokenRefresh(resolve: (token: string) => void, reject: (error: unknown) => void) {
+  refreshSubscribers.push({ resolve, reject });
+}
+
+function onTokenRefreshed(newToken: string) {
+  refreshSubscribers.forEach(sub => sub.resolve(newToken));
+  refreshSubscribers = [];
+}
+
+function onTokenRefreshFailed(error: unknown) {
+  refreshSubscribers.forEach(sub => sub.reject(error));
+  refreshSubscribers = [];
+}
+
+// ─── Request Interceptor — attach access token ────────────────────────────────
+
+apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  const token = await SecureStore.getItemAsync(SECURE_KEYS.ACCESS_TOKEN);
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ─── Response Interceptor — silent token refresh on 401 ──────────────────────
+
+apiClient.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((newToken: string) => {
+            if (originalRequest.headers) {
+              (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${newToken}`;
+            }
+            resolve(apiClient(originalRequest));
+          }, reject);
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        const refreshToken = await SecureStore.getItemAsync(SECURE_KEYS.REFRESH_TOKEN);
+        if (!refreshToken) throw new Error('No refresh token available');
+
+        const { data } = await axios.post<AuthTokens>(
+          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REFRESH}`,
+          { refresh_token: refreshToken }
+        );
+
+        await SecureStore.setItemAsync(SECURE_KEYS.ACCESS_TOKEN, data.access_token);
+        await SecureStore.setItemAsync(SECURE_KEYS.REFRESH_TOKEN, data.refresh_token);
+
+        onTokenRefreshed(data.access_token);
+        isRefreshing = false;
+
+        if (originalRequest.headers) {
+          (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${data.access_token}`;
+        }
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        isRefreshing = false;
+        onTokenRefreshFailed(refreshError);
+        await SecureStore.deleteItemAsync(SECURE_KEYS.ACCESS_TOKEN);
+        await SecureStore.deleteItemAsync(SECURE_KEYS.REFRESH_TOKEN);
+
+        if (onAuthFailure) {
+          try {
+            await onAuthFailure();
+          } catch {
+            // Ignore callback errors to preserve original rejection.
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// ─── Auth API ─────────────────────────────────────────────────────────────────
+
+export const authApi = {
+  async login(credentials: LoginCredentials): Promise<AuthTokens> {
+    const { data } = await apiClient.post<AuthTokens>(API_ENDPOINTS.LOGIN, credentials);
+    return data;
+  },
+
+  async register(payload: RegisterRequest): Promise<AuthTokens> {
+    // Register first (backend returns user info, not tokens)
+    await apiClient.post(API_ENDPOINTS.REGISTER, payload);
+    // Then login to obtain tokens
+    return authApi.login({ email: payload.email, password: payload.password });
+  },
+};
+
+// ─── Profile API ──────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  async getProfile(): Promise<User> {
+    const { data } = await apiClient.get<User>(API_ENDPOINTS.PROFILE);
+    return data;
+  },
+
+  async updateProfile(updates: ProfileUpdate): Promise<User> {
+    const { data } = await apiClient.put<User>(API_ENDPOINTS.UPDATE_PROFILE, updates);
+    return data;
+  },
+};
+
+// ─── Prediction API ───────────────────────────────────────────────────────────
+
+export const predictionApi = {
+  /**
+   * Upload an X-ray image and run prediction for the given model.
+   * Auth is optional on the backend:
+   *   - Token in store → result saved to DB, scan_id returned
+   *   - No token (guest) → prediction runs, scan_id is null
+   */
+  async predict(imageUri: string, model: DiseaseModel): Promise<PredictionResponse> {
+    const formData = new FormData();
+    const filename = imageUri.split('/').pop() || 'xray.jpg';
+    const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    formData.append('file', {
+      uri: imageUri,
+      name: filename,
+      type: mimeType,
+    } as unknown as Blob);
+
+    try {
+      const { data } = await apiClient.post<PredictionResponse>(
+        `${API_ENDPOINTS.PREDICT}?model=${model}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return data;
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error, 'Prediction failed. Please try again.'));
+    }
+  },
+
+  async predictBoth(imageUri: string): Promise<{ tb: PredictionResponse; pneumonia: PredictionResponse }> {
+    const formData = new FormData();
+    const filename = imageUri.split('/').pop() || 'xray.jpg';
+    const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    formData.append('file', {
+      uri: imageUri,
+      name: filename,
+      type: mimeType,
+    } as unknown as Blob);
+
+    try {
+      const { data } = await apiClient.post<{ tb: PredictionResponse; pneumonia: PredictionResponse }>(
+        API_ENDPOINTS.PREDICT_BOTH,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return data;
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error, 'Prediction failed. Please try again.'));
+    }
+  },
+};
+
+// ─── History API ──────────────────────────────────────────────────────────────
+
+export const historyApi = {
+  async getHistory(model?: DiseaseModel, limit = 100, offset = 0): Promise<ScanHistoryResponse> {
+    const params: Record<string, unknown> = { limit, offset };
+    if (model) params.model = model;
+    const { data } = await apiClient.get<ScanHistoryResponse>(API_ENDPOINTS.HISTORY, { params });
+    return data;
+  },
+};
+
+// ─── Report API ───────────────────────────────────────────────────────────────
+
+export const reportApi = {
+  getReportUrl(scanId: number, language: 'en' | 'ur' = 'en'): string {
+    return `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REPORT}${scanId}?language=${language}`;
+  },
+
+  async getAuthHeader(): Promise<string | null> {
+    const token = await SecureStore.getItemAsync(SECURE_KEYS.ACCESS_TOKEN);
+    return token ? `Bearer ${token}` : null;
+  },
+};
+
+// ─── Convenience default export ───────────────────────────────────────────────
+
+const api = {
+  auth: authApi,
+  profile: profileApi,
+  prediction: predictionApi,
+  history: historyApi,
+  report: reportApi,
+};
+
+export default api;

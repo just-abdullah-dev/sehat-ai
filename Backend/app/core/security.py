@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -12,8 +12,11 @@ from app.models.user import User
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# HTTP Bearer token scheme
+# HTTP Bearer token scheme (required)
 security = HTTPBearer()
+
+# HTTP Bearer token scheme (optional — does not raise if no token)
+security_optional = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -157,3 +160,39 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    Get the current authenticated user from JWT token, or None if not authenticated.
+    Does not raise an exception if no token is provided — used for optional-auth endpoints.
+
+    Args:
+        credentials: Optional HTTP authorization credentials
+        db: Database session
+
+    Returns:
+        Current user object or None if not authenticated
+    """
+    if credentials is None:
+        return None
+
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+        if payload.get("type") != "access":
+            return None
+
+        user_id: Optional[int] = payload.get("sub")
+        if user_id is None:
+            return None
+
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        return user
+
+    except JWTError:
+        return None

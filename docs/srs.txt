@@ -1,0 +1,170 @@
+Software Requirements Specification (SRS)
+Project Title: Sehat AI — AI Mobile App for TB & Pneumonia Detection Using Chest X-rays
+Developed by:
+•	Abdullah (B22F1020SE166)
+•	Abbas Mushtaq (B22F0259SE058)
+Supervisor: Dr. Abdul Waheed Khan
+Institute: Pak-Austria Fachhochschule, Institute of Applied Science and Technology, Haripur
+________________________________________
+1. Introduction
+1.1 Purpose
+The purpose of this document is to define the detailed software requirements for the Sehat AI mobile application. The application leverages Artificial Intelligence (AI) and Machine Learning (ML) to detect Tuberculosis (TB) and Pneumonia from chest X-ray images. The system aims to provide early detection, progress tracking, and an accessible diagnostic tool for patients and healthcare providers, especially in regions with limited access to radiologists.
+1.2 Scope
+Sehat AI will be a mobile application developed using React Native with Expo, supported by a Python-based backend that integrates trained ML models (EfficientNet-B0 and DenseNet) for image analysis. The backend will handle API requests, user authentication, data storage (PostgreSQL), and report generation.
+Key functionalities include:
+•	Uploading chest X-ray images.
+•	AI-based prediction (TB, Pneumonia, or Normal).
+•	Progress tracking with scan history.
+•	User medical profile management.
+•	PDF report generation for sharing with doctors.
+•	Storing user symptoms, medications, and scan improvements.
+1.3 Definitions, Acronyms, and Abbreviations
+Term	Definition
+TB	Tuberculosis
+ML	Machine Learning
+AI	Artificial Intelligence
+API	Application Programming Interface
+CNN	Convolutional Neural Network
+PostgreSQL	Relational Database Management System
+JSON	JavaScript Object Notation
+Expo	Framework for building React Native applications
+________________________________________
+2. Overall Description
+2.1 Product Perspective
+Sehat AI will act as a bridge between users (patients or doctors) and the trained ML models for disease detection. It will integrate:
+•	A frontend mobile interface (React Native).
+•	A Python-based backend server using FastAPI or Flask.
+•	ML Models trained on open medical datasets such as TBX11K and ChestX-ray14.
+•	Database (PostgreSQL) for storing user data, scan records, and reports.
+System Architecture
+1.	Mobile App (Frontend):
+o	User authentication and registration.
+o	Image upload interface (camera/gallery).
+o	Display results and history.
+o	Generate and view reports.
+2.	Backend (Server):
+o	RESTful API endpoints.
+o	Integration with ML models for inference.
+o	Manage user profiles, scans, and data persistence.
+3.	Machine Learning Models:
+o	EfficientNet-B0 for Pneumonia detection.
+o	DenseNet (TBX11K) for Tuberculosis detection.
+o	Models will be fine-tuned and optimized for mobile response times.
+4.	Database (PostgreSQL):
+o	Stores user info, medical history, scan metadata, and reports.
+________________________________________
+2.2 Product Functions
+1.	User Authentication
+o	Sign up, login, and secure sessions.
+2.	X-ray Upload
+o	Upload from gallery or camera.
+3.	AI Detection
+o	Image sent to backend for inference.
+o	Returns diagnosis: TB / Pneumonia / Normal.
+4.	History Tracking
+o	Display chronological scan results.
+5.	Progress Visualization
+o	Graphical trend of user’s health improvement.
+6.	Report Generation
+o	Generate downloadable PDF summary.
+7.	Medication & Symptom Logging
+o	Allow users to record treatments and symptoms.
+8.	Notifications
+o	Reminders for re-scans or medication.
+________________________________________
+2.3 User Characteristics
+User Type	Description	Access Level
+Patient	Upload X-rays, view results, track progress.	Basic
+Doctor	Access reports and patient data with permission.	Extended
+Admin	Manage users, ML updates, and maintenance.	Full
+________________________________________
+2.4 Constraints
+•	Platform: Android & iOS via React Native (Expo).
+•	Backend: Python (FastAPI / Flask).
+•	Database: PostgreSQL.
+•	Image size limit: ≤ 10 MB per upload.
+•	Performance constraint: AI inference < 5 seconds.
+•	Security: HIPAA-inspired data protection practices.
+________________________________________
+2.5 Assumptions and Dependencies
+•	Users have smartphones with internet access.
+•	Uploaded X-rays are in readable format (JPEG/PNG).
+•	Model predictions depend on dataset quality and preprocessing.
+•	Cloud hosting for backend and storage (e.g., AWS, Render, or Vercel).
+________________________________________
+3. Specific Requirements
+3.1 Functional Requirements
+FR1: User Management
+•	Users can register using email and password.
+•	Authentication tokens (JWT) ensure secure sessions.
+•	Users can reset passwords.
+FR2: Image Upload
+•	The app must allow users to capture or upload a chest X-ray.
+•	Validate image format and size.
+•	Store metadata in the database.
+FR3: Disease Prediction
+•	The backend ML service receives the image.
+•	Model predicts disease (TB / Pneumonia / Normal).
+•	Response returned in JSON format with confidence scores.
+FR4: History & Progress Tracking
+•	Each scan result is stored with a timestamp.
+•	Graphs show disease progression over time.
+FR5: Report Generation
+•	Generate a PDF report containing:
+o	User info.
+o	Scan result & confidence.
+o	Model used.
+o	Progress chart (if applicable).
+o	Medical recommendations.
+FR6: Notifications
+•	Push notifications for scheduled scans or medication.
+FR7: Data Management
+•	Secure CRUD operations for user data and history.
+•	Admin can delete or update records if necessary.
+________________________________________
+3.2 Non-Functional Requirements
+Category	Requirement
+Performance	Inference response ≤ 5 seconds, App launch time ≤ 3 seconds.
+Security	Encrypted communication (HTTPS, JWT), data anonymization.
+Scalability	Backend supports 1000+ concurrent users.
+Usability	Simple, intuitive UI for all ages.
+Reliability	99% uptime with proper error handling.
+Portability	Cross-platform (Android/iOS) using React Native.
+Maintainability	Modular architecture; ML model can be replaced or updated independently.
+________________________________________
+4. System Architecture Diagram
+(Conceptual Overview)
+•	Frontend (React Native + Expo) → API requests → Backend (Python FastAPI/Flask) → ML Models (DenseNet / EfficientNet) → Database (PostgreSQL)
+•	Reports & data served back to frontend for visualization.
+________________________________________
+5. External Interface Requirements
+5.1 User Interface
+•	Home screen (Upload X-ray / View History).
+•	Result screen (Prediction with confidence score).
+•	Profile screen (User info, medications, symptoms).
+•	Reports screen (Generated PDFs).
+5.2 Hardware Interface
+•	Smartphone camera & file system access.
+•	Cloud-based backend hosting.
+5.3 Software Interface
+•	RESTful APIs (JSON).
+•	Integration with Firebase for push notifications.
+•	Libraries: TensorFlow / PyTorch for ML models.
+________________________________________
+6. Future Enhancements
+•	Include other respiratory diseases (e.g., COVID-19).
+•	Integration with wearable devices for vital signs.
+•	Doctor–patient chat and teleconsultation module.
+•	Offline prediction with lightweight on-device model.
+________________________________________
+7. Appendices
+7.1 Dataset References
+•	TBX11K Dataset — for Tuberculosis detection.
+•	ChestX-ray14 — for Pneumonia detection.
+7.2 Tools & Technologies
+•	Frontend: React Native (Expo)
+•	Backend: Python (FastAPI / Flask)
+•	Database: PostgreSQL
+•	ML Framework: TensorFlow / PyTorch
+•	Hosting: Render / AWS / Firebase
+

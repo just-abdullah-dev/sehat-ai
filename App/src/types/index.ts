@@ -1,21 +1,11 @@
 // TypeScript types for the application
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  age?: number;
-  gender?: 'male' | 'female' | 'other';
-  profileImage?: string;
-  symptoms?: string;
-  medicines?: string[];
-  createdAt: string;
-}
+// ─── Auth ────────────────────────────────────────────────────────────────────
 
-export interface AuthResponse {
-  token: string;
-  user: User;
+export interface AuthTokens {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
 }
 
 export interface LoginCredentials {
@@ -23,41 +13,93 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface SignupData {
-  name: string;
+export interface RegisterRequest {
   email: string;
+  username: string;   // backend uses 'username' (mapped from Full Name in UI)
   password: string;
-  confirmPassword: string;
 }
+
+// ─── User / Profile ──────────────────────────────────────────────────────────
+
+export interface User {
+  id: number;
+  email: string;
+  username: string;
+  phone?: string;
+  date_of_birth?: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  symptoms?: string;
+  medicines?: string[];
+  created_at: string;
+}
+
+export interface ProfileUpdate {
+  username?: string;
+  phone?: string;
+  date_of_birth?: string;
+  gender?: 'male' | 'female' | 'other';
+  symptoms?: string;
+  medicines?: string[];
+}
+
+// ─── Prediction ───────────────────────────────────────────────────────────────
+
+export type DiseaseModel = 'tb' | 'pneumonia';
+export type DiseaseSelection = 'tb' | 'pneumonia' | 'both';
+
+export interface PredictionResponse {
+  scan_id: number | null;   // null for guests
+  result: 'Positive' | 'Normal';
+  confidence: number;       // 0–1
+  processing_time: number;
+  model_used: DiseaseModel;
+  file_url: string;
+  message: string;
+}
+
+export interface CombinedPredictionResult {
+  tb?: PredictionResponse;
+  pneumonia?: PredictionResponse;
+  imageUri: string;
+}
+
+// ─── Scan History ─────────────────────────────────────────────────────────────
+
+export interface ScanHistoryItem {
+  id: number;
+  file_url: string;
+  model_used: DiseaseModel;
+  result: 'Positive' | 'Normal';
+  confidence: number;
+  processing_time: number;
+  created_at: string;
+}
+
+export interface ScanHistoryResponse {
+  total: number;
+  scans: ScanHistoryItem[];
+}
+
+// ─── Legacy scan shape used across existing UI components ────────────────────
 
 export interface Scan {
   id: string;
-  userId: string;
+  model: DiseaseModel;
   imageUrl: string;
-  result: 'TB' | 'Pneumonia' | 'Normal';
+  result: 'Positive' | 'Normal';
   confidence: number;
-  timestamp: string;
-  notes?: string;
-}
-
-export interface PredictionResult {
-  result: 'TB' | 'Pneumonia' | 'Normal';
-  confidence: number;
-  scanId: string;
   timestamp: string;
 }
 
-export interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  type: 'reminder' | 'medication' | 'general';
-  timestamp: string;
-  read: boolean;
-}
+// ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface AppSettings {
   theme: 'light' | 'dark';
   language: 'en' | 'ur';
   notificationsEnabled: boolean;
 }
+
+// ─── Report ───────────────────────────────────────────────────────────────────
+
+export type ReportLanguage = 'en' | 'ur';

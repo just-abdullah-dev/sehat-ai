@@ -35,6 +35,23 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const isDark = theme === 'dark';
+
+  const getReadableTextColor = () => {
+    if (variant === 'primary') {
+      return isDark ? colors.background : '#fff';
+    }
+
+    if (variant === 'outline') {
+      return isDark ? colors.text : colors.tint;
+    }
+
+    if (variant === 'secondary' && isDark) {
+      return colors.text;
+    }
+
+    return '#fff';
+  };
 
   const getButtonStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
@@ -47,11 +64,16 @@ export const Button: React.FC<ButtonProps> = ({
       case 'primary':
         return { ...baseStyle, backgroundColor: colors.tint };
       case 'secondary':
-        return { ...baseStyle, backgroundColor: colors.icon };
+        return {
+          ...baseStyle,
+          backgroundColor: isDark ? '#2A2A2A' : colors.icon,
+          borderWidth: isDark ? 1 : 0,
+          borderColor: isDark ? '#3A3A3A' : 'transparent',
+        };
       case 'outline':
         return {
           ...baseStyle,
-          backgroundColor: 'transparent',
+          backgroundColor: isDark ? '#222426' : 'transparent',
           borderWidth: 2,
           borderColor: colors.tint,
         };
@@ -69,11 +91,7 @@ export const Button: React.FC<ButtonProps> = ({
       ...(size === 'large' && styles.textLarge),
     };
 
-    if (variant === 'outline') {
-      return { ...baseStyle, color: colors.tint };
-    }
-
-    return { ...baseStyle, color: '#fff' };
+    return { ...baseStyle, color: getReadableTextColor() };
   };
 
   return (
@@ -88,9 +106,9 @@ export const Button: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? colors.tint : '#fff'} />
+        <ActivityIndicator color={getReadableTextColor()} />
       ) : (
-        <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+        <Text style={[textStyle, getTextStyle()]}>{title}</Text>
       )}
     </TouchableOpacity>
   );

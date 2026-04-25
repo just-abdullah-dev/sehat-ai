@@ -13,34 +13,46 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
+import { useLanguage } from '@/src/hooks/useLanguage';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { loginSchema } from '@/src/utils/validation';
 import { StatusBar } from 'expo-status-bar';
+import type { LoginCredentials } from '@/src/types';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { login, continueAsGuest } = useAuth();
   const { theme } = useTheme();
+  const { isRTL } = useLanguage();
   const colors = Colors[theme];
   const [isLoading, setIsLoading] = useState(false);
+
+  const rowDirection = isRTL ? 'row-reverse' : 'row';
+  const textAlign = isRTL ? 'right' : 'left';
 
   const handleGuestAccess = () => {
     continueAsGuest();
     router.replace('/(tabs)');
   };
 
-  const handleLogin = async (values: { email: string; password: string }) => {
+  const handleLogin = async (values: LoginCredentials) => {
     setIsLoading(true);
     try {
       await login(values);
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+    } catch (error: unknown) {
+      const err = error as Error;
+      Alert.alert(
+        t('auth.loginFailed'),
+        err.message || t('auth.invalidCredentials')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -58,16 +70,16 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>
-              Welcome to Sehat AI
+            <Text style={[styles.title, { color: colors.text, textAlign }]}>
+              {t('auth.welcomeTitle')}
             </Text>
-            <Text style={[styles.subtitle, { color: colors.icon }]}>
-              AI-powered TB & Pneumonia Detection
+            <Text style={[styles.subtitle, { color: colors.icon, textAlign }]}>
+              {t('auth.welcomeSubtitle')}
             </Text>
           </View>
 
           <Formik
-            initialValues={{ email: 'abdullah@test.com', password: 'Test@123' }}
+            initialValues={{ email: '', password: '' }}
             validationSchema={loginSchema}
             onSubmit={handleLogin}
           >
@@ -81,8 +93,8 @@ export default function LoginScreen() {
             }) => (
               <View style={styles.form}>
                 <Input
-                  label="Email"
-                  placeholder="Enter your email"
+                  label={t('auth.email')}
+                  placeholder={t('auth.emailPlaceholder')}
                   value={values.email}
                   onChangeText={handleChange('email')}
                   onBlur={handleBlur('email')}
@@ -94,8 +106,8 @@ export default function LoginScreen() {
                 />
 
                 <Input
-                  label="Password"
-                  placeholder="Enter your password"
+                  label={t('auth.password')}
+                  placeholder={t('auth.passwordPlaceholder')}
                   value={values.password}
                   onChangeText={handleChange('password')}
                   onBlur={handleBlur('password')}
@@ -105,56 +117,51 @@ export default function LoginScreen() {
                   icon="lock-closed-outline"
                 />
 
-                <TouchableOpacity style={styles.forgotPassword}>
+                <TouchableOpacity style={[styles.forgotPassword, { alignSelf: isRTL ? 'flex-start' : 'flex-end' }]}>
                   <Text style={[styles.forgotPasswordText, { color: colors.tint }]}>
-                    Forgot Password?
+                    {t('auth.forgotPassword')}
                   </Text>
                 </TouchableOpacity>
 
                 <Button
-                  title="Login"
+                  title={t('auth.loginButton')}
                   onPress={handleSubmit as any}
                   loading={isLoading}
                   style={styles.loginButton}
                 />
 
-                <View style={styles.signupContainer}>
-                  <Text style={[styles.signupText, { color: colors.icon }]}>
-                    Don't have an account?{' '}
+                <View style={[styles.signupContainer, { flexDirection: rowDirection }]}>
+                  <Text style={[styles.signupText, { color: colors.icon, textAlign }]}>
+                    {t('auth.dontHaveAccount')}{' '}
                   </Text>
                   <TouchableOpacity onPress={() => router.push('/signup')}>
                     <Text style={[styles.signupLink, { color: colors.tint }]}>
-                      Sign Up
+                      {t('auth.signUp')}
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.dividerContainer}>
                   <View style={[styles.divider, { backgroundColor: colors.icon }]} />
-                  <Text style={[styles.dividerText, { color: colors.icon }]}>OR</Text>
+                  <Text style={[styles.dividerText, { color: colors.icon }]}>
+                    {t('auth.or')}
+                  </Text>
                   <View style={[styles.divider, { backgroundColor: colors.icon }]} />
                 </View>
 
                 <Button
-                  title="Continue as Guest"
+                  title={t('auth.continueAsGuest')}
                   variant="outline"
                   onPress={handleGuestAccess}
                   style={styles.guestButton}
                 />
 
-                <View style={styles.demoNotice}>
-                  <Text style={[styles.demoText, { color: colors.icon }]}>
-                    Demo Credentials:{'\n'}
-                    Email: abdullah@test.com{'\n'}
-                    Password: Test@123
-                  </Text>
-                </View>
               </View>
             )}
           </Formik>
         </ScrollView>
 
-        <LoadingSpinner visible={isLoading} message="Logging in..." />
+        <LoadingSpinner visible={isLoading} message={t('auth.loggingIn')} />
       </KeyboardAvoidingView>
     </>
   );
@@ -177,17 +184,14 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '700',
     marginBottom: 8,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
   },
   form: {
     width: '100%',
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
     marginBottom: 24,
   },
   forgotPasswordText: {
@@ -198,7 +202,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   signupContainer: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -226,16 +229,5 @@ const styles = StyleSheet.create({
   },
   guestButton: {
     marginBottom: 24,
-  },
-  demoNotice: {
-    marginTop: 32,
-    padding: 16,
-    backgroundColor: 'rgba(10, 126, 164, 0.1)',
-    borderRadius: 12,
-  },
-  demoText: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });

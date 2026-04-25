@@ -1,0 +1,596 @@
+SEHAT AI 
+AI Mobile App for TB & Pneumonia Detection Using Chest X-rays
+  
+
+By 
+Abdullah 
+B22F1020SE166 
+ 
+Abbas Mushtaq
+B22F0259SE058  
+
+Final Year Project Report 
+ 
+School of Computing Sciences 
+ 
+Pak-Austria Fachhochschule: Institute of Applied 
+Sciences & Technology 
+
+2022 - 2026
+  
+Sehat-AI 
+AI Mobile App for TB & Pneumonia Detection Using Chest X-rays 
+A Final Year Project Report Presented to  
+ 
+Pak-Austria Fachhochschule: Institute of Applied Sciences and Technology 
+ 
+In partial fulfillment  
+of the requirement for the degree of  
+ 
+BS Software Engineering 
+
+By 
+Abdullah 
+B22F1020SE166 
+ 
+Abbas Mushtaq
+B22F0259SE058  
+
+2022 - 2026 
+ 
+
+Sehat-AI 
+AI Mobile App for TB & Pneumonia Detection Using Chest X-rays 
+
+ 
+ 
+
+A Final Year Project Report submitted to the School of Computing Sciences as partial fulfillment of the requirement for the award of Degree of BS in Software Engineering. 
+
+
+Abdullah 	B22F1020SE166
+Abbas Mushtaq	B22F0259SE058
+ 
+
+Academic Supervisor 
+Dr. Abdul Waheed 
+Assistant Professor,  
+School of Computing Sciences, 
+Pak-Austria Fachhochschule: Institute of Applied Sciences and Technology 
+
+
+
+
+
+
+
+ 	 
+Final Approval 
+ 
+This final year project titles 
+ 
+Sehat AI 
+AI Mobile App for TB & Pneumonia Detection Using Chest X-rays
+By 
+Abdullah 	B22F1020SE166
+Abbas Mushtaq	B22F0259SE058
+ 
+under the supervision of their project supervisor and approved by the project evaluation committee, has been accepted by the Pak-Austria Fachhochschule: Institute of Applied Sciences and Technology, Pakistan, in partial fulfillment of the requirements for the degree of BS Software Engineering. 
+ 
+Academic Supervisor: 
+ 
+Dr. Abdul Waheed 
+School of Computing Sciences  
+Hod/Chairman 
+ 
+Dr. Kamran Javed 
+School of Computing Sciences 
+  	 
+
+
+
+
+
+Declaration 
+
+We, Abdullah (B22F1020SE166) and Abbas Mushtaq (B22F0259SE058), hereby declare that we have produced the work presented in this final year project report, during the scheduled period of study. We also declare that we have not taken any material from any source except referred to wherever due to that amount of plagiarism is within an acceptable range. It is further declared that we have developed this project and the accompanied report entirely on the basis of our personal efforts made under the sincere guidance of our supervisor. No portion of the work presented in this report has been submitted in support of any other degree or qualification of this or any other University or Institute of learning, if found we shall stand responsible. 
+ 
+Date: 
+ 
+
+Signature:__________________ 
+Abdullah 
+B22F1020SE166 
+
+ 
+Signature:__________________ 
+Abbas Mushtaq 
+B22F0259SE058 
+
+
+
+
+
+
+
+
+ 	 
+Certificate 
+It is certified that Abdullah (B22F1020SE166) and Abbas Mushtaq (B22F0259SE058) have carried out all the work related to this project under my supervision at the Department of School of Computing Sciences, Pak-Austria Fachhochschule: Institute of Applied Sciences and Technology and the work fulfills the requirement for the award of BS Software Engineering. 
+
+Date: 
+	Supervisor: 	 	 	 
+ 
+________________________ 
+Dr. Abdul Waheed Assistant Professor 
+ 
+ 
+Head of Department: 
+ 
+__________________________ 
+Dr. Kamran Javed
+Chairman / Head of Department School of Computing Sciences 
+
+
+
+
+
+
+
+
+
+
+DEDICATION 
+ 
+ 
+ 	  
+ACKNOWLEDGEMENTS 
+ 
+ 
+ 	  
+ABSTRACT 
+ 
+ 
+  
+Table of Contents 
+Chapter 1: Project Vision .................................................................................  
+1.1 Problem Statement ..........................................................................................................  
+1.2 Business opportunity .......................................................................................................  
+1.3 Objectives .......................................................................................................................  
+1.4 Project Scope ...................................................................................................................  
+1.4.1 Included Features .....................................................................................................  
+1.4.2 Excluded Features .................................................................................................... 
+1.5 Constraints ......................................................................................................................  
+1.6 Feasibility ........................................................................................................................  
+1.6.1 Technical Feasibility .................................................................................................  
+1.6.2 Resource Feasibility .................................................................................................  
+1.6.3 Time Feasibility ........................................................................................................  
+1.6.4 Market Feasibility ....................................................................................................  
+1.7 Stakeholders Description .................................................................................................  
+1.7.1 Stakeholders Summary ..........................................................................................  1.7.2 Key High-Level Goals and Problems of Stakeholders .......................................... 
+
+Chapter 2: Software Requirements Specification.........................................  
+2.1 List of Features ................................................................................................................  
+2.2 Functional Requirements .................................................................................................  
+2.3 Non-Functional Requirements ......................................................................................  
+2.4 Use Cases/ Use Case Diagram ....................................................................................... 
+2.4.1 User Authentication and Account Management .....................................................  
+2.4.2 X-ray Upload and AI Detection ...................................................................................  
+2.4.3 Report Generation and Progress Tracking............................................................  
+2.5 Software Development Plan ..........................................................................................  2.5.1 Development Methodology ....................................................................................  2.5.2 Key Milestones and Timeline .................................................................................
+2.5.3 Tools and Technologies ..........................................................................................  2.5.4 Resources Required ................................................................................................ 
+
+Chapter 3: System Overview ......................................................................................... 
+    3.1 Architectural Design ........................................................................... ....................
+        3.1.1 High Level Overview ................................................................ ......................
+        3.1.2 Workflow Overview ....................................................................... ..................
+    3.2 Data Design ..........................................................................................
+        3.2.1 Entity-Relationship Diagram (ERD) ..........................................
+        3.2.2 Data Flow Diagram (DFD) ............................................................
+    3.3 Domain Model .......................................................................................
+        3.3.1 Class Diagram ...............................................................................
+        3.3.2 Activity Diagram ...........................................................................
+        3.3.3 State Transition Diagram ............................................................
+        3.3.4 Sequence Diagram .......................................................................
+        3.3.5 Component Diagram ....................................................................
+3.4 Mockups .....................................................................................................
+ 
+
+Chapter 1: Project Vision
+
+1.1 Problem Statement
+Tuberculosis (TB) and Pneumonia are among the leading causes of morbidity and mortality worldwide, especially in developing regions. Early detection plays a critical role in treatment success and survival; however, the shortage of skilled radiologists and healthcare facilities causes delays and inaccuracies in diagnosis.
+Traditional diagnosis depends on manual interpretation of chest X-rays, which is often time-consuming, subjective, and prone to human error. Moreover, hospital-based diagnosis can be costly and inaccessible to patients in remote areas.
+Currently, there are no mobile-based, AI-powered solutions in Pakistan and similar regions that can assist in real-time, automated detection of TB and Pneumonia from chest X-rays. Hence, there is a strong need for an intelligent, cost-effective, and user-friendly AI mobile application that facilitates early detection and continuous monitoring of these diseases.
+
+1.2 Business Opportunity
+Market Need
+•	Over 10 million people are diagnosed with TB each year (WHO, 2024).
+•	Pneumonia remains one of the leading causes of child mortality worldwide.
+•	Developing countries, including Pakistan, face a severe shortage of diagnostic specialists.
+Opportunity
+The proposed application, Sehat AI, addresses these challenges by leveraging Artificial Intelligence (AI) and mobile technology to automate X-ray image analysis. It offers a low-cost, scalable, and accessible diagnostic platform suitable for both urban and rural populations.
+Competitive Advantage
+•	Real-time AI-based detection for TB and Pneumonia.
+•	Accessibility through mobile devices without the need for specialized hardware.
+•	Lower cost compared to hospital diagnostics.
+•	Support for multilingual and user-friendly interfaces.
+•	Scalable solution for future healthcare integrations.
+
+1.3 Objectives
+Primary Objectives
+1.	Develop a cross-platform mobile application for TB and Pneumonia detection from chest X-rays.
+2.	Train and Integrate machine learning models to achieve reliable and precise results.
+3.	Provide a simple and intuitive user interface for image upload and instant predictions.
+4.	Maintain a medical history record with progress visualization.
+5.	Enable report generation and sharing for professional use by doctors or healthcare institutions.
+Secondary Objectives
+1.	Ensure data privacy and user security through encryption and authentication.
+2.	Support multilingual interfaces (English and Urdu).
+3.	Establish the foundation for adding other respiratory disease detections in future versions.
+
+1.4 Project Scope
+1.4.1 Included Features
+•	AI-based classification of chest X-rays into TB, Pneumonia, or Normal.
+•	Image upload from camera or gallery.
+•	Real-time disease prediction with confidence percentage.
+•	User authentication and secure profile management.
+•	Storage of scan history and tracking of disease progression.
+•	PDF report generation for medical use.
+•	Notifications and reminders for follow-up scans or medication schedules.
+•	Responsive and user-friendly UI developed using React Native (Expo).
+
+1.4.2 Excluded Features
+•	Integration with hospital EMR systems.
+•	Telemedicine or live doctor consultations.
+•	Integration with wearable medical devices.
+•	Offline model inference (TensorFlow Lite-based).
+•	On-device data analysis or deep learning model retraining by users.
+
+1.5 Constraints
+Type	Description
+Technical	Requires stable internet connection for model inference; image upload limited to ≤10 MB.
+Hardware	Compatible with Android (9+) and iOS (13+) devices.
+Security	All communications via HTTPS; sensitive data encrypted; JWT-based authentication.
+Performance	Prediction latency ≤10 seconds for optimal user experience.
+Resource	Limited dataset availability and computing resources for model training.
+
+1.6 Feasibility
+1.6.1 Technical Feasibility
+The project uses React Native with Expo for cross-platform mobile development and a Python-based backend (FastAPI) that integrates deep learning models built using TensorFlow/Keras.
+Both frameworks are open-source, reliable, and well-supported, ensuring smooth development and deployment. Cloud-based deployment (AWS/Render/Railway) will support scalability and high availability.
+1.6.2 Resource Feasibility
+The project requires:
+•	Developer laptops with Python and Node.js environments.
+•	Access to GPUs for training and fine-tuning ML models. (Google Colab).
+•	Publicly available datasets such as TBX11K and Chest X-Ray Images (Pneumonia).
+•	Hosting services for backend and database (PostgreSQL).
+
+1.6.3 Time Feasibility
+The project development is divided into structured phases:
+1.	Phase 1: Requirement analysis and dataset preparation.
+2.	Phase 2: ML model training, evaluation, and optimization.
+3.	Phase 3: Frontend and backend integration with API development.
+4.	Phase 4: Testing, performance tuning, and deployment.
+5.	Phase 5: Final review, documentation, and presentation.
+
+1.6.4 Market Feasibility
+Sehat AI fulfills a significant healthcare gap in low-resource areas where diagnostic services are limited. Its mobile-first design provides accessibility and affordability, making it viable for real-world use.
+With increasing smartphone adoption, this solution holds high potential for public health impact, especially in developing regions.
+
+1.7 Stakeholders Description
+1.7.1 Stakeholders Summary
+Stakeholder	Role	Interest
+Patients	Primary users	Early detection, health monitoring, and report generation
+Doctors/Radiologists	Secondary users	Reviewing AI-based reports for diagnosis validation
+Developers	Technical team	Building and maintaining application and ML models
+Supervisor	Mentors	Project evaluation, guidance, and quality assurance
+________________________________________
+
+
+1.7.2 Key High-Level Goals and Problems of Stakeholders
+Stakeholder	Key Goals	Problems Addressed
+Patients	Obtain quick, affordable diagnosis and monitor progress	Lack of access to radiologists and delayed results
+Doctors / Radiologists	Leverage AI for initial screening and reduce workload	Time-consuming manual image interpretation
+Developers	Create scalable, secure, and accurate AI-based app	Integrating ML with mobile interfaces efficiently
+Supervisors / Evaluators	Ensure technical soundness and innovation	Maintaining project standards and academic quality
+Healthcare Institutions	Integrate modern AI diagnostics into systems	Expensive and centralized diagnostic processes
+
+ 
+*** End Of Chapter 1 ***
+
+
+
+
+
+
+
+
+
+Chapter 2: Software Requirements Specification
+
+2.1 List of Features
+The Sehat AI mobile application provides the following key features:
+•	X-ray Upload:
+Provides functionality for uploading chest X-ray images directly through the device camera or photo gallery for analysis.
+•	AI Detection:
+Train and Integrates Machine Learning models using TBX11K for TB and NIH ChestX-ray14 dataset predict whether the chest X-ray indicates Tuberculosis, Pneumonia, or Normal condition.
+•	Prediction Confidence Score:
+Displays a confidence percentage representing how certain the model is about its prediction, allowing users and doctors to assess reliability.
+•	Multilingual Interface:
+Provides English and Urdu language support to make the application more accessible to local users in Pakistan and similar regions.
+•	Dark Mode Support:
+Offers a light and dark mode toggle to enhance usability and comfort under different lighting conditions.
+•	Secure Data Handling:
+Ensures that all communications are encrypted (HTTPS) and sensitive files are stored securely, protecting patient data and confidentiality.
+•	User Authentication:
+Enables secure user registration, login, and logout using JWT-based authentication, ensuring privacy and protection of personal data.
+•	Profile Management:
+Allows users to edit and update personal information, record symptoms, and log medications for better tracking of health conditions.
+•	Scan History:
+Stores and displays all previous scans and results in chronological order for easy access and comparison over time.
+•	Report Generation:
+Enables users to generate, download, and share PDF reports containing scan details, predictions, and confidence scores for professional medical review.
+
+2.2 Functional Requirements
+FR1: X-ray Upload
+•	The app shall allow users to upload chest X-ray images from the gallery or camera.
+•	The app shall validate image format (JPEG/PNG) and size (≤ 10 MB).
+•	The app shall preview uploaded images before submission.
+FR2: AI Model Prediction
+•	The backend shall classify the image as TB, Pneumonia, or Normal.
+•	The backend shall return a confidence score (0–100%).
+•	The response time for prediction shall be ≤ 10 seconds.
+FR3: User Authentication
+•	The system shall allow users to register with name, email, and password.
+•	The system shall allow users to log in and log out securely using JWT tokens.
+•	The system shall allow users to reset password via registered email.
+FR4: Profile Management
+•	The user shall be able to update profile information, including symptoms and medications.
+•	The system shall store and retrieve user medical history securely.
+FR5: Multilingual Support
+•	The app shall allow the user to switch between English and Urdu.
+FR6: Security
+•	The system shall use HTTPS for secure communication.
+•	All user credentials shall be encrypted.
+FR7: Scan History and Tracking
+•	The system shall store all user scans with date and time.
+•	The system shall display results chronologically.
+•	The system shall visualize disease progression through graphs.
+FR8: Report Generation
+•	The system shall generate PDF reports including patient details, results, and confidence scores.
+•	The report shall be downloadable and shareable via email or messaging apps.
+________________________________________
+2.3 Non-Functional Requirements
+Category	Requirement
+Performance	Prediction latency ≤ 10 seconds; App launch time ≤ 3 seconds.
+Scalability	Support up to 100 concurrent users.
+Reliability	Maintain 90% uptime for backend APIs.
+Security	Use JWT authentication and encrypted storage.
+Usability	Provide responsive UI with minimal steps to perform actions.
+Portability	Compatible with Android (9+) and iOS (13+) devices.
+Maintainability	Modular architecture for easy model or feature updates.
+Availability	Backend deployed 24/7 on cloud hosting.
+Accessibility	Support larger fonts, contrast themes, and touch-friendly design.
+Localization	English and Urdu supported for wider adoption.
+________________________________________
+2.4 Use Cases / Use Case Diagram
+
+2.4.1 X-ray Upload and AI Detection
+Actor	User / Backend System
+Description	User uploads an X-ray image to get automated disease prediction.
+Preconditions	User logged in and X-ray available.
+Main Flow	1. User uploads image → 2. Backend model runs inference → 3. Prediction & confidence returned.
+Postconditions	Result displayed and saved to user history.
+
+2.4.2 User Authentication and Account Management
+Actor	User (Patient)
+Description	User registers, logs in, and manages their profile securely.
+Preconditions	The user has internet access.
+Main Flow	1. User opens app → 2. Navigates to login/signup → 3. Authenticates via API → 4. Accesses dashboard (Scan History, Report Generation)
+Alternative Flow	Password reset via email if credentials invalid.
+Postconditions	User session created with JWT token.
+
+
+2.4.3 Report Generation
+Actor	User / Backend
+Description	The user generates reports.
+Preconditions	At least one scan must exist in history.
+Main Flow	1. User selects past scans → 2. System compiles data → 3. PDF report generated and downloadable.
+Postconditions	PDF available for sharing; graph updates accordingly.
+________________________________________
+
+
+
+
+
+
+
+
+
+
+Use Case Diagram:
+ 
+
+2.5 Software Development Plan
+2.5.1 Development Methodology
+The Agile methodology will be adopted for this project, ensuring iterative progress, flexibility, and collaboration between the development team members.
+Each sprint will focus on incremental functionality:
+•	Sprint 1: Requirement analysis and UI design.
+•	Sprint 2: ML model training and backend setup.
+•	Sprint 3: Frontend integration and API testing.
+•	Sprint 4: Feature completion, testing, and documentation.
+
+Benefits of Agile:
+•	Continuous user feedback and improvement.
+•	Early testing of core functionalities.
+•	Flexibility for scope changes.
+
+
+2.5.2 Key Milestones and Timeline
+Phase	Deliverables
+Phase 1	Requirement gathering, datasets, initial model setup
+Phase 2	Model training, fine-tuning, and testing
+Phase 3	Backend API and database integration
+Phase 4	React Native frontend implementation
+Phase 5	Full system testing and optimization
+Phase 6	Final deployment and documentation
+
+
+2.5.3 Tools and Technologies
+Category	Technology / Tool	Reason for Selection
+Frontend	React Native, Tailwind CSS	Enables fast cross-platform development with flexible, responsive UI styling.
+Backend	Python (FastAPI), PostgreSQL	Provides a high-performance API with a secure and scalable database backend.
+ML Framework	TensorFlow/Keras	Used for building and deploying reliable deep learning models efficiently.
+Dataset	TBX11K, Chest X-ray Images (Pneumonia)	Selected for medically validated, labeled chest X-ray data for accurate training.
+API Communication	Axios	Simple and reliable HTTP client for frontend-to-backend communication.
+Testing	Jest, Postman	Ensures application stability and API correctness through automated and manual testing.
+Version Control	Git, GitHub	Manages code versions and supports collaborative development workflows.
+Deployment	Render / Railway / AWS	Enables scalable cloud deployment with fast build and hosting pipelines.
+Notifications	Expo Notifications	Provides easy cross-platform push notification integration.
+PDF Reports	ReportLab / expo-file-viewer	Generates and displays medical PDF reports within the application.
+________________________________________
+
+2.5.4 Resources Required
+Resource Type	Description
+Human Resources	3 Developers (Frontend, Backend, ML)
+Hardware	Laptops with 8+ GB RAM and GPU support
+Software Tools	Node.js, Python, VS Code, Postman, Expo CLI
+Datasets	Open-source medical X-ray datasets (TBX11K, Chest X-ray Images (pneumonia))
+Cloud Infrastructure	Hosting for API and database
+Testing Devices	Android and iOS smartphones for app validation
+
+*** End Of Chapter 2 ***
+
+
+
+
+
+
+
+
+
+Chapter 3 — System Overview
+
+This chapter explains how the whole system of our FYP “Sehat AI” works from backend, frontend, database, and machine learning perspectives. Since our platform detects TB and Pneumonia from chest X-rays, we have a FastAPI backend that loads two trained .h5 models, a React Native frontend app, and a PostgreSQL database to store users and scan history.
+________________________________________
+3.1 Architectural Design
+3.1.1 High Level Overview
+Our system is divided into three main layers:
+1.	Frontend (React Native App)
+o	Allows users to register, login, upload X-ray images, and view predictions.
+o	Communicates with backend through REST APIs.
+2.	Backend (FastAPI)
+o	Loads two ML models (tb_model.h5 and pneumonia_model.h5) using TensorFlow/Keras.
+o	Provides image upload API, prediction API, authentication API, and history API.
+o	Also stores user data and prediction results in PostgreSQL.
+3.	Database (PostgreSQL)
+o	Stores user accounts
+o	Stores scan history including predictions, confidence scores, model used, timestamps, and file URLs
+High-Level Architecture Diagram 
+ 
+________________________________________
+3.1.2 Workflow Overview
+Below is the step-by-step process followed when a user uploads an X-ray:
+1.	User uploads a chest X-ray.
+2.	Backend receives the image and validates it.
+3.	Depending on user selection (TB or Pneumonia), appropriate model is used.
+4.	TensorFlow loads .h5 model and performs inference.
+5.	User logs in from the mobile app.
+6.	Backend returns:
+o	Result (Normal or Positive)
+o	Confidence score
+o	Processing time
+7.	Backend saves scan info in the database.
+8.	User can view the result or history.
+Workflow Diagram 
+ 
+________________________________________
+3.2 Data Design
+3.2.1 Entity Relationship Diagram (ERD)
+Your ERD is based on the SQLAlchemy models you provided:
+•	User
+•	ScanHistory
+•	ModelType Enum
+•	PredictionResult Enum
+Here is the ERD:
+ 
+________________________________________
+3.2.2 Data Flow Diagram 
+ 
+________________________________________
+3.3 Domain Model
+This section explains the core objects of the system: User and ScanHistory.
+3.3.1 Class Diagram
+ 
+________________________________________
+3.3.2 Activity Diagram
+ 
+________________________________________
+3.3.3 State Transition Diagram
+This diagram shows state transitions of a scan request.
+ 
+________________________________________
+3.3.4 Sequence Diagram
+ 
+________________________________________
+3.3.5 Component Diagram
+ 
+Use Case Diagram
+Master Use Case Diagram
+ 
+
+Guest User Use Case Diagram
+ 
+
+Registered User Authentication Use Case Diagram
+ 
+Registered User Prediction Use Case Diagram
+ 
+Scan History Management Use Case Diagram
+ 
+
+Report Generation Use Case Diagram
+ 
+
+Profile Management Use Case Diagram
+ 
+
+
+________________________________________
+3.4 Mockups
+ 
+Splash_Screen
+ 
+Login_Page
+ 
+Register Page 
+ 
+Upload Page as User
+ 
+History Page as User
+ 
+Profile Page as User
+ 
+Settings Page as User
+ 
+Upload Page as Guest
+ 
+History Page as Guest
+ 
+Profile Page as Guest
+ 
+Settings Page as Guest
+ 
+
+
+
+
+
+
+ 
+
+
+
+*** End Of Chapter 3 ***
+
