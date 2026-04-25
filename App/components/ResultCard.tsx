@@ -73,6 +73,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({
           <Text style={[styles.timestamp, { color: colors.icon }]}>
             {formatDate(timestamp)}
           </Text>
+          {model === 'pneumonia' && (
+            <View style={[styles.gradcamHint, { backgroundColor: colors.tint + '12' }]}>
+              <Ionicons name="scan-outline" size={11} color={colors.tint} />
+              <Text style={[styles.gradcamHintText, { color: colors.tint }]}>
+                Grad-CAM available
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </Card>
@@ -104,4 +112,15 @@ const styles = StyleSheet.create({
   confidenceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   confidence: { fontSize: 14, fontWeight: '600' },
   timestamp: { fontSize: 12 },
+  gradcamHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  gradcamHintText: { fontSize: 10, fontWeight: '600' },
 });

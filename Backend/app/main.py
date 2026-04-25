@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import os
 import time
 import logging
 
@@ -33,6 +34,12 @@ async def lifespan(app: FastAPI):
         init_db()
         logger.info("Database initialized successfully")
 
+        # Ensure storage directories exist, including Grad-CAM outputs
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        os.makedirs(settings.REPORT_DIR, exist_ok=True)
+        os.makedirs(os.path.join(settings.REPORT_DIR, "gradcam"), exist_ok=True)
+        logger.info("Storage directories verified")
+
         # Load ML models
         logger.info("Loading ML models...")
         model_loader.load_models()
@@ -62,6 +69,7 @@ app = FastAPI(
 
 # Serve uploaded files publicly so the mobile app can load scan previews.
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+app.mount("/reports", StaticFiles(directory=settings.REPORT_DIR), name="reports")
 
 # Configure CORS
 app.add_middleware(

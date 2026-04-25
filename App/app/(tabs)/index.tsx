@@ -23,10 +23,16 @@ import { useTheme } from '@/src/context/ThemeContext';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
+import { GradCAMReportCard } from '@/components/GradCAMReportCard';
 import { predictionApi, historyApi } from '@/src/services/api';
 import { APP_CONFIG, API_CONFIG } from '@/src/utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { PredictionResponse, DiseaseSelection, ScanHistoryItem } from '@/src/types';
+import type {
+  DetailedPneumoniaPrediction,
+  DiseaseSelection,
+  PredictionResponse,
+  ScanHistoryItem,
+} from '@/src/types';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -55,6 +61,9 @@ export default function HomeScreen() {
   // Results from the last analysis
   const [tbResult, setTbResult] = useState<PredictionResponse | null>(null);
   const [pneumoniaResult, setPneumoniaResult] = useState<PredictionResponse | null>(null);
+  const [pneumoniaDetailedResult, setPneumoniaDetailedResult] =
+    useState<DetailedPneumoniaPrediction | null>(null);
+  const [isLoadingDetailed, setIsLoadingDetailed] = useState(false);
 
   // Last scan from history (authenticated users only)
   const [lastScan, setLastScan] = useState<ScanHistoryItem | null>(null);
@@ -192,6 +201,7 @@ export default function HomeScreen() {
         // Reset previous results
         setTbResult(null);
         setPneumoniaResult(null);
+        setPneumoniaDetailedResult(null);
       }
     } catch {
       Alert.alert(t('common.error'), 'Failed to pick image. Please try again.');
@@ -204,6 +214,7 @@ export default function HomeScreen() {
       setTbResult(null);
       setPneumoniaResult(null);
       setAnalysisError(null);
+      setPneumoniaDetailedResult(null);
     }
 
     Alert.alert(t('home.uploadTitle'), 'Choose image source', [
@@ -222,6 +233,7 @@ export default function HomeScreen() {
     setIsAnalyzing(true);
     setTbResult(null);
     setPneumoniaResult(null);
+    setPneumoniaDetailedResult(null);
     setAnalysisError(null);
 
     try {
@@ -255,6 +267,23 @@ export default function HomeScreen() {
     } finally {
       setIsAnalyzing(false);
       setAnalyzingModel('');
+    }
+  };
+
+  const loadDetailedPneumonia = async () => {
+    if (!selectedImage) {
+      return;
+    }
+    setIsLoadingDetailed(true);
+    setPneumoniaDetailedResult(null);
+    try {
+      const detailed = await predictionApi.predictPneumoniaDetailed(selectedImage);
+      setPneumoniaDetailedResult(detailed);
+    } catch (err: unknown) {
+      const error = err as Error;
+      Alert.alert(t('common.error'), error.message || 'Detailed analysis failed. Please try again.');
+    } finally {
+      setIsLoadingDetailed(false);
     }
   };
 
@@ -658,6 +687,27 @@ export default function HomeScreen() {
                       {t('home.signInForReport')}
                     </Text>
                   </TouchableOpacity>
+                )}
+
+                <Button
+                  title={isLoadingDetailed ? 'Generating Analysis...' : '🔬 View Detailed Grad-CAM Analysis'}
+                  variant="outline"
+                  size="small"
+                  loading={isLoadingDetailed}
+                  disabled={isLoadingDetailed}
+                  onPress={loadDetailedPneumonia}
+                  style={{ marginTop: 10 }}
+                />
+
+                {pneumoniaDetailedResult && (
+                  <GradCAMReportCard
+                    report={pneumoniaDetailedResult}
+                    onExportPDF={
+                      isAuthenticated && pneumoniaDetailedResult.scan_id != null
+                        ? () => openReport(pneumoniaDetailedResult.scan_id!)
+                        : undefined
+                    }
+                  />
                 )}
               </Card>
             )}

@@ -1,5 +1,7 @@
 import logging
+import os
 import traceback
+import uuid
 from typing import Optional
 from fastapi import UploadFile, HTTPException, status
 from sqlalchemy.orm import Session
@@ -211,6 +213,86 @@ class PredictionService:
             raise e
         except Exception as e:
             logger.error(f"Both-prediction service error — {type(e).__name__}: {e}")
+            logger.error(traceback.format_exc())
+            StorageService.delete_image(file_path)
+            raise e
+
+    @staticmethod
+    async def process_pneumonia_detailed(
+        file: UploadFile,
+        user: Optional[User],
+        db: Session,
+    ) -> dict:
+        """
+        Process pneumonia prediction with full Grad-CAM explainability report.
+
+        Saves uploaded X-ray + all 4 Grad-CAM PNG files to disk.
+        Returns standard prediction fields plus 'gradcam' report dict.
+
+        Authenticated users: result saved to scan history.
+        Guest users: inference runs, result NOT saved to DB (scan_id = None).
+        """
+        from app.core.config import settings
+
+        logger.info(f"Saving file for detailed pneumonia: {file.filename}")
+        file_path, file_url = await StorageService.save_uploaded_image(file)
+
+        try:
+            image_bytes = StorageService.get_image_bytes(file_path)
+            logger.info(f"Image bytes: {len(image_bytes)} bytes")
+
+            # Validate chest X-ray first
+            PredictionService._ensure_chest_xray(image_bytes)
+            logger.info("Chest X-ray validation passed")
+
+            analysis_id = str(uuid.uuid4())
+            gradcam_dir = os.path.join(settings.REPORT_DIR, "gradcam", analysis_id)
+            gradcam_mode = getattr(settings, "GRADCAM_IMAGE_MODE", "both")
+
+            logger.info(f"Running detailed pneumonia + Grad-CAM (mode={gradcam_mode})...")
+            prediction_result = predictor.predict_pneumonia_with_gradcam(
+                image_bytes=image_bytes,
+                save_dir=gradcam_dir,
+                mode=gradcam_mode,
+            )
+            logger.info(
+                f"Detailed prediction done: result={prediction_result['result']}, "
+                f"confidence={prediction_result['confidence']:.4f}"
+            )
+
+            scan_id = None
+            if user is not None:
+                scan_record = ScanHistory(
+                    user_id=user.id,
+                    file_url=file_url,
+                    model_used=ModelType.PNEUMONIA,
+                    result=prediction_result["result"],
+                    confidence=prediction_result["confidence"],
+                    processing_time=prediction_result["processing_time"],
+                )
+                db.add(scan_record)
+                db.commit()
+                db.refresh(scan_record)
+                scan_id = scan_record.id
+                logger.info(f"Scan record saved: scan_id={scan_id}")
+
+            return {
+                "scan_id": scan_id,
+                "result": prediction_result["result"],
+                "confidence": prediction_result["confidence"],
+                "processing_time": prediction_result["processing_time"],
+                "model_used": ModelType.PNEUMONIA,
+                "file_url": file_url,
+                "threshold": prediction_result["threshold"],
+                "gradcam": prediction_result["gradcam"],
+            }
+
+        except HTTPException as e:
+            logger.warning(f"Detailed prediction rejected: {e.detail}")
+            StorageService.delete_image(file_path)
+            raise e
+        except Exception as e:
+            logger.error(f"Detailed prediction error — {type(e).__name__}: {e}")
             logger.error(traceback.format_exc())
             StorageService.delete_image(file_path)
             raise e

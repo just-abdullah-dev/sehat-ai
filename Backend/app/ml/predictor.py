@@ -1,6 +1,7 @@
 import time
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
+from app.ml.gradcam import PneumoniaGradCAM
 from app.ml.model_loader import model_loader
 from app.ml.preprocessing import ImagePreprocessor
 from app.models.scan import ModelType, PredictionResult
@@ -157,6 +158,62 @@ class Predictor:
 
         result = PredictionResult.POSITIVE if is_positive else PredictionResult.NORMAL
         return result, float(confidence)
+
+    def predict_pneumonia_with_gradcam(
+        self,
+        image_bytes: bytes,
+        save_dir: Optional[str] = None,
+        mode: str = "both",
+    ) -> Dict[str, Any]:
+        """
+        Run pneumonia inference and generate full Grad-CAM report.
+
+        Args:
+            image_bytes: Raw image bytes from upload
+            save_dir: Directory to save PNG files (for URL mode)
+            mode: "base64" | "url" | "both"
+
+        Returns standard prediction fields plus 'gradcam' report dict.
+        """
+        start_time = time.time()
+
+        model = model_loader.get_pneumonia_model()
+        config = model_loader.get_pneumonia_config()
+        input_shape = model.input_shape
+        target_size = (input_shape[2], input_shape[1])
+
+        processed = self.preprocessor.preprocess_for_pneumonia(
+            image_bytes,
+            target_size=target_size,
+        )
+
+        prediction = model.predict(processed, verbose=0)
+        raw_score = float(prediction[0][0])
+        threshold = float(config["best_threshold"])
+        class_indices = config["class_indices"]
+        positive_index = int(
+            class_indices.get(
+                "pneumonia",
+                class_indices.get("positive", 1),
+            )
+        )
+        result, confidence = self._apply_threshold(raw_score, threshold, positive_index)
+
+        gradcam_engine = PneumoniaGradCAM(model)
+        gradcam_report = gradcam_engine.generate(
+            image_bytes=image_bytes,
+            preprocessed_input=processed,
+            save_dir=save_dir,
+            mode=mode,
+        )
+
+        return {
+            "result": result,
+            "confidence": float(confidence),
+            "processing_time": time.time() - start_time,
+            "threshold": threshold,
+            "gradcam": gradcam_report,
+        }
 
 
 predictor = Predictor()

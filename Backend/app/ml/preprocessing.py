@@ -145,3 +145,29 @@ class ImagePreprocessor:
             return np.expand_dims(img_array, axis=0)
         except Exception as e:
             raise ValueError(f"Grayscale preprocessing failed: {str(e)}")
+
+    def get_clahe_preview(
+        self,
+        image_bytes: bytes,
+        target_size: Tuple[int, int] = (300, 300),
+    ) -> np.ndarray:
+        """
+        Return CLAHE-enhanced image as uint8 RGB numpy array (H, W, 3).
+
+        Used only for the Grad-CAM visual report - shows the CLAHE enhancement
+        step to the user. NOT used for model inference.
+        Use preprocess_for_pneumonia() for inference preprocessing.
+        """
+        try:
+            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            image = image.resize(target_size)
+            img_np = np.array(image).astype(np.uint8)
+
+            lab = cv2.cvtColor(img_np, cv2.COLOR_RGB2LAB)
+            l_channel, a_channel, b_channel = cv2.split(lab)
+            clahe_engine = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            lab_enhanced = cv2.merge([clahe_engine.apply(l_channel), a_channel, b_channel])
+            return cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2RGB)
+
+        except Exception as e:
+            raise ValueError(f"CLAHE preview failed: {str(e)}")

@@ -9,6 +9,7 @@ import * as SecureStore from 'expo-secure-store';
 import { API_CONFIG, API_ENDPOINTS, SECURE_KEYS } from '../utils/constants';
 import type {
   AuthTokens,
+  DetailedPneumoniaPrediction,
   LoginCredentials,
   RegisterRequest,
   User,
@@ -249,6 +250,35 @@ export const predictionApi = {
       return data;
     } catch (error: unknown) {
       throw new Error(getApiErrorMessage(error, 'Prediction failed. Please try again.'));
+    }
+  },
+
+  async predictPneumoniaDetailed(imageUri: string): Promise<DetailedPneumoniaPrediction> {
+    const formData = new FormData();
+    const filename = imageUri.split('/').pop() || 'xray.jpg';
+    const ext = filename.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    formData.append('file', {
+      uri: imageUri,
+      name: filename,
+      type: mimeType,
+    } as unknown as Blob);
+
+    try {
+      const { data } = await apiClient.post<DetailedPneumoniaPrediction>(
+        '/predict/pneumonia/detailed/',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      return data;
+    } catch (error: unknown) {
+      throw new Error(getApiErrorMessage(error, 'Detailed analysis failed. Please try again.'));
     }
   },
 };

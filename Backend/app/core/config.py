@@ -31,7 +31,12 @@ class Settings(BaseSettings):
     CHEST_XRAY_VALIDATOR_MODEL_PATH: str = "ml_models/chest_xray_validator.h5"
     CHEST_XRAY_VALIDATOR_METADATA_PATH: str = "ml_models/chest_xray_validator_metadata.json"
     TB_DEFAULT_THRESHOLD: float = 0.75
-    PNEUMONIA_DEFAULT_THRESHOLD: float = 0.70
+    PNEUMONIA_DEFAULT_THRESHOLD: float = 1.0
+    # Grad-CAM image delivery mode
+    # "base64" - embed images in JSON (best for React Native, works offline)
+    # "url"    - save files, return URLs only (best for web, smaller JSON)
+    # "both"   - base64 + file URLs (default - frontend can use either)
+    GRADCAM_IMAGE_MODE: str = "both"
     CHEST_XRAY_VALIDATOR_THRESHOLD: float = 0.5
 
     # Storage

@@ -7,7 +7,12 @@ from app.core.database import get_db
 from app.core.security import get_optional_current_user
 from app.models.user import User
 from app.models.scan import ModelType
-from app.schemas.prediction import PredictionResponse, BothPredictionResponse
+from app.schemas.gradcam import GradCAMReport, LungZoneAnalysis
+from app.schemas.prediction import (
+    BothPredictionResponse,
+    DetailedPneumoniaPredictionResponse,
+    PredictionResponse,
+)
 from app.services.prediction import PredictionService
 
 logger = logging.getLogger(__name__)
@@ -16,9 +21,12 @@ router = APIRouter(prefix="/predict", tags=["Prediction"])
 
 
 def _build_message(model_label: str, result_value: str, confidence: float) -> str:
+    pretty_label = "Pneumonia" if model_label.upper() == "PNEUMONIA" else model_label
     if result_value == "Positive":
-        return f"{model_label} detected with {confidence:.2%} confidence"
-    return f"No {model_label} detected. Scan appears normal with {confidence:.2%} confidence"
+        if model_label.upper() == "PNEUMONIA":
+            return f"High likelihood of {pretty_label} detected (confidence: {confidence:.2%})"
+        return f"{pretty_label} detected with {confidence:.2%} confidence"
+    return f"No {pretty_label} detected. Scan appears normal with {confidence:.2%} confidence"
 
 
 @router.post("/both/", response_model=BothPredictionResponse)
@@ -148,4 +156,75 @@ async def predict(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Prediction failed: {str(e)}"
+        )
+
+
+@router.post("/pneumonia/detailed/", response_model=DetailedPneumoniaPredictionResponse)
+async def predict_pneumonia_detailed(
+    file: UploadFile = File(..., description="Chest X-ray image file"),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Run pneumonia detection with full Grad-CAM explainability report.
+
+    Returns standard prediction fields plus:
+    - 4 images (base64 and/or URLs based on GRADCAM_IMAGE_MODE)
+    - Lung zone analysis with activation scores and severity
+    - Affected zones and primary affected zone
+    """
+    logger.info(
+        f"Detailed pneumonia request - file={file.filename}, "
+        f"user={'id=' + str(current_user.id) if current_user else 'guest'}"
+    )
+
+    try:
+        result = await PredictionService.process_pneumonia_detailed(
+            file=file,
+            user=current_user,
+            db=db,
+        )
+
+        result_value = (
+            result["result"].value
+            if hasattr(result["result"], "value")
+            else result["result"]
+        )
+
+        g = result["gradcam"]
+
+        return DetailedPneumoniaPredictionResponse(
+            scan_id=result["scan_id"],
+            result=result["result"],
+            confidence=result["confidence"],
+            processing_time=result["processing_time"],
+            model_used=result["model_used"],
+            file_url=result["file_url"],
+            threshold=result["threshold"],
+            message=_build_message("PNEUMONIA", result_value, result["confidence"]),
+            gradcam=GradCAMReport(
+                original_b64=g.get("original_b64"),
+                clahe_b64=g.get("clahe_b64"),
+                heatmap_b64=g.get("heatmap_b64"),
+                overlay_b64=g.get("overlay_b64"),
+                original_url=g.get("original_url"),
+                clahe_url=g.get("clahe_url"),
+                heatmap_url=g.get("heatmap_url"),
+                overlay_url=g.get("overlay_url"),
+                lung_zones=[LungZoneAnalysis(**z) for z in g["lung_zones"]],
+                affected_zones=g["affected_zones"],
+                primary_affected_zone=g["primary_affected_zone"],
+                overall_activation=g["overall_activation"],
+                last_conv_layer=g["last_conv_layer"],
+            ),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Detailed pneumonia endpoint failed - {type(e).__name__}: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Detailed prediction failed: {str(e)}",
         )
