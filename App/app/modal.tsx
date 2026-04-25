@@ -1,4 +1,4 @@
-// Report Viewer Modal — Real PDF download with language selection and auth gate
+// Report Viewer Modal — Real PDF download with auth gate
 
 import React, { useState } from 'react';
 import {
@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  Linking,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,6 @@ import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { reportApi } from '@/src/services/api';
-import type { ReportLanguage } from '@/src/types';
 
 export default function ReportViewerModal() {
   const router = useRouter();
@@ -32,7 +30,6 @@ export default function ReportViewerModal() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [downloadedUri, setDownloadedUri] = useState<string | null>(null);
-  const [language, setLanguage] = useState<ReportLanguage>('en');
 
   const rawScanId = params.scanId as string | undefined;
   const scanId = rawScanId ? parseInt(rawScanId, 10) : null;
@@ -97,7 +94,7 @@ export default function ReportViewerModal() {
   // ── Download PDF from backend ─────────────────────────────────────────────
 
   const downloadReport = async (): Promise<string | null> => {
-    const reportUrl = reportApi.getReportUrl(scanId, language);
+    const reportUrl = reportApi.getReportUrl(scanId);
     const authHeader = await reportApi.getAuthHeader();
 
     if (!authHeader) {
@@ -108,7 +105,7 @@ export default function ReportViewerModal() {
       throw new Error('Unable to access local storage on this device.');
     }
 
-    const fileUri = `${FileSystem.documentDirectory}sehatai_report_${scanId}_${language}.pdf`;
+    const fileUri = `${FileSystem.documentDirectory}sehatai_report_${scanId}_en.pdf`;
 
     const downloadResult = await FileSystem.downloadAsync(reportUrl, fileUri, {
       headers: { Authorization: authHeader },
@@ -129,6 +126,14 @@ export default function ReportViewerModal() {
     throw new Error(`Download failed (HTTP ${downloadResult.status}). Please try again.`);
   };
 
+  const openReport = async (uri: string) => {
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      throw new Error('No app is available to open this PDF on your device.');
+    }
+    await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
+  };
+
   const handleDownload = async () => {
     setIsLoading(true);
     try {
@@ -136,7 +141,14 @@ export default function ReportViewerModal() {
       if (!uri) return;
       setDownloadedUri(uri);
       Alert.alert('Report Downloaded', 'Your report has been saved.', [
-        { text: 'Open', onPress: () => Linking.openURL(uri) },
+        {
+          text: 'Open',
+          onPress: () => {
+            void openReport(uri).catch((error: Error) => {
+              Alert.alert('Open Failed', error.message || 'Please try sharing the report.');
+            });
+          },
+        },
         { text: 'OK' },
       ]);
     } catch (err: unknown) {
@@ -170,11 +182,6 @@ export default function ReportViewerModal() {
     }
   };
 
-  const handleViewInBrowser = () => {
-    const url = reportApi.getReportUrl(scanId, language);
-    Linking.openURL(url);
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -196,30 +203,6 @@ export default function ReportViewerModal() {
             Download your AI-generated diagnostic report as PDF
           </Text>
 
-          {/* Language Selection */}
-          <Card style={styles.languageCard}>
-            <Text style={[styles.languageTitle, { color: colors.text }]}>Report Language</Text>
-            <View style={styles.languageRow}>
-              {(['en', 'ur'] as ReportLanguage[]).map(lang => (
-                <TouchableOpacity
-                  key={lang}
-                  style={[
-                    styles.langChip,
-                    {
-                      backgroundColor: language === lang ? colors.tint : colors.tint + '15',
-                      borderColor: colors.tint,
-                    },
-                  ]}
-                  onPress={() => { setLanguage(lang); setDownloadedUri(null); }}
-                >
-                  <Text style={[styles.langChipText, { color: language === lang ? '#fff' : colors.tint }]}>
-                    {lang === 'en' ? 'English' : 'اردو (Urdu)'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Card>
-
           {/* Report Ready Indicator */}
           {downloadedUri && (
             <Card>
@@ -238,7 +221,7 @@ export default function ReportViewerModal() {
                 <FeatureItem icon="medical-outline" text="Confidence scores and metrics" />
                 <FeatureItem icon="time-outline" text="Scan history and timeline" />
                 <FeatureItem icon="document-text-outline" text="Professional PDF format" />
-                <FeatureItem icon="language-outline" text="Bilingual support (English & Urdu)" />
+                <FeatureItem icon="person-outline" text="Includes account name and email" />
               </View>
             </Card>
           )}
@@ -256,12 +239,6 @@ export default function ReportViewerModal() {
               variant="outline"
               onPress={handleShare}
               loading={isLoading}
-              style={styles.actionButton}
-            />
-            <Button
-              title="View in Browser"
-              variant="secondary"
-              onPress={handleViewInBrowser}
               style={styles.actionButton}
             />
           </View>
@@ -308,18 +285,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
   subtitle: { fontSize: 16, textAlign: 'center', marginBottom: 32, lineHeight: 24 },
   signInButton: { width: '100%' },
-  languageCard: { marginBottom: 16 },
-  languageTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
-  languageRow: { flexDirection: 'row', gap: 10 },
-  langChip: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  langChipText: { fontSize: 14, fontWeight: '600' },
   reportInfo: {
     flexDirection: 'row',
     alignItems: 'center',

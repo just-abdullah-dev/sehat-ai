@@ -7,6 +7,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from datetime import datetime
 from pathlib import Path
 from app.models.scan import ScanHistory
+from app.models.user import User
 from app.core.config import settings
 import os
 
@@ -50,13 +51,13 @@ class PDFGenerator:
             spaceAfter=6
         )
 
-    def generate_report(self, scan: ScanHistory, language: str = "en") -> str:
+    def generate_report(self, scan: ScanHistory, user: User) -> str:
         """
         Generate PDF report for a scan.
 
         Args:
             scan: Scan history record
-            language: Report language ('en' for English, 'ur' for Urdu)
+            user: Authenticated account owner of the scan
 
         Returns:
             Path to generated PDF file
@@ -87,12 +88,11 @@ class PDFGenerator:
             content = []
 
             # Add title
-            title_text = "SehatAI Medical Report" if language == "en" else "SehatAI طبی رپورٹ"
-            content.append(Paragraph(title_text, self.title_style))
+            content.append(Paragraph("Sehat AI Medical Report", self.title_style))
             content.append(Spacer(1, 0.3 * inch))
 
             # Add scan details table
-            scan_data = self._build_scan_data(scan, language)
+            scan_data = self._build_scan_data(scan, user)
             scan_table = Table(scan_data, colWidths=[2.5 * inch, 3.5 * inch])
             scan_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), colors.white),
@@ -109,7 +109,7 @@ class PDFGenerator:
 
             # Add X-ray image if available
             if os.path.exists(scan.file_url):
-                content.append(Paragraph("X-Ray Image:" if language == "en" else "ایکس رے تصویر:", self.header_style))
+                content.append(Paragraph("X-Ray Image:", self.header_style))
                 content.append(Spacer(1, 0.1 * inch))
 
                 img = Image(scan.file_url, width=4 * inch, height=4 * inch)
@@ -117,52 +117,50 @@ class PDFGenerator:
                 content.append(Spacer(1, 0.2 * inch))
 
             # Add disclaimer
-            disclaimer = self._get_disclaimer(language)
-            content.append(Paragraph(disclaimer, self.normal_style))
+            content.append(Paragraph(self._get_disclaimer(), self.normal_style))
 
             # Build PDF
-            doc.build(content)
+            doc.build(content, onFirstPage=self._draw_watermark, onLaterPages=self._draw_watermark)
 
             return str(pdf_path)
 
         except Exception as e:
             raise Exception(f"Failed to generate PDF report: {str(e)}")
 
-    def _build_scan_data(self, scan: ScanHistory, language: str) -> list:
+    def _build_scan_data(self, scan: ScanHistory, user: User) -> list:
         """Build scan data for table"""
-        if language == "en":
-            return [
-                ["Report ID:", f"#{scan.id}"],
-                ["Date & Time:", scan.created_at.strftime("%Y-%m-%d %H:%M:%S")],
-                ["Model Used:", scan.model_used.value.upper()],
-                ["Result:", scan.result.value],
-                ["Confidence:", f"{scan.confidence:.2%}"],
-                ["Processing Time:", f"{scan.processing_time:.2f} seconds"],
-            ]
-        else:
-            # Urdu labels (right-to-left text support may require additional configuration)
-            return [
-                ["رپورٹ نمبر:", f"#{scan.id}"],
-                ["تاریخ اور وقت:", scan.created_at.strftime("%Y-%m-%d %H:%M:%S")],
-                ["ماڈل:", scan.model_used.value.upper()],
-                ["نتیجہ:", scan.result.value],
-                ["اعتماد:", f"{scan.confidence:.2%}"],
-                ["پروسیسنگ ٹائم:", f"{scan.processing_time:.2f} seconds"],
-            ]
+        processing_time = "N/A"
+        if scan.processing_time is not None:
+            processing_time = f"{scan.processing_time:.2f} seconds"
 
-    def _get_disclaimer(self, language: str) -> str:
-        """Get disclaimer text based on language"""
-        if language == "en":
-            return (
-                "<b>Disclaimer:</b> This report is generated using AI-based medical image analysis. "
-                "The results should be reviewed by a qualified healthcare professional. "
-                "This is not a substitute for professional medical advice, diagnosis, or treatment."
-            )
-        else:
-            return (
-                "<b>دستبرداری:</b> یہ رپورٹ AI پر مبنی طبی تصویری تجزیہ استعمال کرتے ہوئے تیار کی گئی ہے۔ "
-                "نتائج کا جائزہ کسی تصدیق شدہ صحت کی دیکھ بھال کرنے والے پیشہ ور کے ذریعے لیا جانا چاہیے۔"
-            )
+        return [
+            ["Report ID:", f"#{scan.id}"],
+            ["Date & Time:", scan.created_at.strftime("%Y-%m-%d %H:%M:%S")],
+            ["Account Name:", user.username],
+            ["Account Email:", user.email],
+            ["Model Used:", scan.model_used.value.upper()],
+            ["Result:", scan.result.value],
+            ["Confidence:", f"{scan.confidence:.2%}"],
+            ["Processing Time:", processing_time],
+        ]
+
+    def _draw_watermark(self, canvas, _doc):
+        """Draw a subtle diagonal watermark on each page."""
+        canvas.saveState()
+        canvas.setFillColor(colors.Color(0.75, 0.75, 0.75, alpha=0.15))
+        canvas.setFont("Helvetica-Bold", 52)
+        canvas.translate(A4[0] / 2, A4[1] / 2)
+        canvas.rotate(35)
+        canvas.drawCentredString(0, 0, "SEHAT AI")
+        canvas.restoreState()
+
+    def _get_disclaimer(self) -> str:
+        """Get English disclaimer text for generated reports."""
+        return (
+            "<b>Disclaimer:</b> This report is generated using AI-based medical image analysis. "
+            "The results should be reviewed by a qualified healthcare professional. "
+            "This is not a substitute for professional medical advice, diagnosis, or treatment."
+        )
 
 
 # Global PDF generator instance

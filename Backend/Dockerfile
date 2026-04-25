@@ -24,8 +24,11 @@ RUN mkdir -p uploads reports logs
 
 EXPOSE 8000
 
+ENV PORT=8000 \
+    WEB_CONCURRENCY=2
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+    CMD python -c "import os, urllib.request; p=os.getenv('PORT','8000'); urllib.request.urlopen(f'http://127.0.0.1:{p}/health', timeout=5)"
 
 FROM base AS development
 
@@ -36,4 +39,4 @@ FROM base AS production
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --proxy-headers --forwarded-allow-ips='*'"]

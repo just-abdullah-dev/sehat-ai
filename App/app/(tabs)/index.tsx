@@ -663,7 +663,7 @@ export default function HomeScreen() {
             )}
 
             {/* Download Both (when both results are available and authenticated) */}
-            {isAuthenticated && tbResult?.scan_id != null && pneumoniaResult?.scan_id != null && (
+            {/* {isAuthenticated && tbResult?.scan_id != null && pneumoniaResult?.scan_id != null && (
               <View style={styles.bothReportsRow}>
                 <Button
                   title="Download Both Reports"
@@ -674,7 +674,7 @@ export default function HomeScreen() {
                   }}
                 />
               </View>
-            )}
+            )} */}
           </View>
         )}
 
