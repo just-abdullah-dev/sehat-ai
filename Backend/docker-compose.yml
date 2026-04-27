@@ -38,6 +38,14 @@ services:
       PNEUMONIA_MODEL_METADATA_PATH: ${PNEUMONIA_MODEL_METADATA_PATH:-ml_models/pneumonia_detection_metadata.json}
       CHEST_XRAY_VALIDATOR_MODEL_PATH: ${CHEST_XRAY_VALIDATOR_MODEL_PATH:-ml_models/chest_xray_validator.h5}
       CHEST_XRAY_VALIDATOR_METADATA_PATH: ${CHEST_XRAY_VALIDATOR_METADATA_PATH:-ml_models/chest_xray_validator_metadata.json}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Sehat AI}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-True}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-False}
       PORT: ${PORT:-8000}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
     volumes:

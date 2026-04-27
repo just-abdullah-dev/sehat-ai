@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.auth import UserCreate, UserLogin, UserResponse, Token, RefreshTokenRequest
+from app.schemas.auth import (
+    UserCreate, UserLogin, UserResponse, Token, RefreshTokenRequest,
+    ForgotPasswordRequest, VerifyOTPRequest, ResetPasswordRequest, ForgotPasswordResponse,
+)
 from app.services.auth import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -20,7 +23,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         Created user information (without password)
 
     Raises:
-        HTTPException 400: If email or username already exists
+        HTTPException 400: If email already exists
     """
     user = AuthService.register_user(db, user_data)
     return user
@@ -65,3 +68,45 @@ async def refresh_token(
     """
     tokens = AuthService.refresh_access_token(db, token_data.refresh_token)
     return tokens
+
+
+# ── Password Reset Endpoints ──────────────────────────────────────────────────
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Step 1 — Request a 6-digit OTP for the given email.
+    Always returns 200 to avoid email enumeration.
+    In DEBUG mode, the OTP is included in the response for easy testing.
+    """
+    result = AuthService.request_password_reset(db, body.email)
+    return result
+
+
+@router.post("/verify-otp")
+async def verify_otp(
+    body: VerifyOTPRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Step 2 — Verify that the OTP is correct and still valid (15-min window).
+    Returns 200 on success; 400 on wrong/expired OTP.
+    """
+    result = AuthService.verify_reset_otp(db, body.email, body.otp)
+    return result
+
+
+@router.post("/reset-password")
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Step 3 — Verify OTP one final time and update the password.
+    Clears the OTP fields after a successful reset.
+    """
+    result = AuthService.reset_password(db, body.email, body.otp, body.new_password)
+    return result
