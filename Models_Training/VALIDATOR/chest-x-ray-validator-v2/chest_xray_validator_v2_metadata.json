@@ -1,0 +1,29 @@
+{
+  "model_name": "chest_xray_validator_v2",
+  "version": "2.0",
+  "architecture": "EfficientNetB0",
+  "input_size": [
+    224,
+    224
+  ],
+  "preprocessing": "efficientnet.preprocess_input",
+  "class_indices": {
+    "chest_xray": 0,
+    "not_xray": 1
+  },
+  "best_threshold": 0.2,
+  "val_accuracy": null,
+  "val_auc": null,
+  "val_precision": null,
+  "val_recall": null,
+  "trained_on": {
+    "positives": "chest-xray-pneumonia (Kaggle)",
+    "negatives": [
+      "MURA v1.1 \u2014 hand, wrist, elbow, shoulder, finger, forearm, humerus X-rays (Stanford)",
+      "Knee OA X-rays",
+      "Brain MRI (Navoneel)",
+      "Intel Image Classification \u2014 natural scenes"
+    ]
+  },
+  "improvement_over_v1": "Added musculoskeletal and knee X-rays as negative class to enforce chest-specific anatomy learning"
+}

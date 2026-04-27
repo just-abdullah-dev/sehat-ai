@@ -409,7 +409,7 @@ export default function ProfileScreen() {
                               ]}
                               onPress={() => handleChange('gender')(g)}
                             >
-                              <Text style={[styles.genderText, { color: values.gender === g ? '#fff' : colors.text }]}> 
+                              <Text style={[styles.genderText, { color: values.gender === g ? (theme === 'dark' ? '#000' : '#fff') : colors.text }]}> 
                                 {g.charAt(0).toUpperCase() + g.slice(1)}
                               </Text>
                             </TouchableOpacity>

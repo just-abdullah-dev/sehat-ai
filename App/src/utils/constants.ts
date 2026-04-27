@@ -35,6 +35,9 @@ export const API_ENDPOINTS = {
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
   REFRESH: '/auth/refresh',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  VERIFY_OTP: '/auth/verify-otp',
+  RESET_PASSWORD: '/auth/reset-password',
 
   // Prediction  — append ?model=tb or ?model=pneumonia; /both/ for both models in one call
   PREDICT: '/predict/',

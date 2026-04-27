@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, KeyboardAvoidingView } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -11,7 +11,11 @@ import { Fonts } from '@/constants/theme';
 
 export default function TabTwoScreen() {
   return (
-    <ParallaxScrollView
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
         <IconSymbol
@@ -95,6 +99,7 @@ export default function TabTwoScreen() {
         })}
       </Collapsible>
     </ParallaxScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

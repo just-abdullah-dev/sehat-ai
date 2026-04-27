@@ -95,7 +95,7 @@ Recommended production API URL setting:
 
 ```json
 "extra": {
-  "apiUrl": "https://api.sehatai.com"
+  "apiUrl": "https://sehat-ai.teezeen.com"
 }
 ```
 

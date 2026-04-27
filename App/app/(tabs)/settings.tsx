@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -185,14 +187,14 @@ export default function SettingsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}> 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={{ paddingHorizontal: 20, paddingTop: 60, paddingBottom: 10 }}>
         {isGuest && (
           <TouchableOpacity
-            style={[styles.guestBanner, { backgroundColor: colors.tint + '15', flexDirection: rowDirection }]}
+            style={[styles.guestBanner, { backgroundColor: colors.tint + '15', flexDirection: rowDirection, marginBottom: 16 }]}
             onPress={() => router.push('/login')}
           >
             <Ionicons name="person-add-outline" size={20} color={colors.tint} />
@@ -207,7 +209,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         )}
 
-        <View style={[styles.header, { flexDirection: rowDirection }]}> 
+        <View style={[styles.header, { flexDirection: rowDirection, marginBottom: 0 }]}>
           <View>
             <Text style={[styles.greeting, { color: colors.icon, textAlign }]}>{t('settings.welcomeBack')}</Text>
             <Text style={[styles.userName, { color: colors.text, textAlign }]}>
@@ -226,6 +228,12 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
         </View>
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 10 }]}
+      >
 
         <View style={styles.titleBlock}>
           <Text style={[styles.title, { color: colors.text, textAlign }]}>{t('settings.title')}</Text>
@@ -334,7 +342,7 @@ export default function SettingsScreen() {
           <SettingItem
             icon="information-circle-outline"
             title={t('settings.appVersion')}
-            subtitle="1.0.0"
+            subtitle="1.0.1"
           />
 
           <SettingItem
@@ -436,7 +444,7 @@ export default function SettingsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
