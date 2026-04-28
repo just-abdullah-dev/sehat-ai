@@ -51,7 +51,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiUrl": "https://sehat-ai.teezeen.com",
+      "apiUrl": "http://localhost:8000",
       "router": {},
       "eas": {
         "projectId": "2a0878f7-a9dd-483f-a90f-9b0c9f5fdc77"

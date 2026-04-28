@@ -1,0 +1,16 @@
+# Keep EAS focused on the Expo app and exclude monorepo baggage.
+
+.git/
+.claude/
+Backend/
+Docs/
+Models_Training/
+
+# Generated or local-only build artifacts.
+**/node_modules/
+**/.expo/
+**/.expo-shared/
+**/dist/
+**/web-build/
+**/android/
+**/ios/
