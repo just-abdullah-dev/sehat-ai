@@ -14,6 +14,9 @@ from app.ml.model_loader import model_loader
 # Import routers
 from app.api import auth, prediction, history, reports, profile
 
+from app.api.debug import router as debug_router
+
+
 # Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -121,6 +124,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Include routers
+app.include_router(debug_router)
 app.include_router(auth.router)
 app.include_router(prediction.router)
 app.include_router(history.router)

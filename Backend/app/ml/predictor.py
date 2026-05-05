@@ -111,7 +111,8 @@ class Predictor:
         positive_index = int(class_indices.get("tb_positive", 1))
 
         return self._apply_threshold(raw_score, threshold, positive_index)
-
+    
+       
     def _run_pneumonia(self, image_bytes: bytes) -> Tuple[PredictionResult, float]:
         """Run pneumonia inference with standard preprocessing and metadata threshold."""
         model = model_loader.get_pneumonia_model()
@@ -139,6 +140,34 @@ class Predictor:
 
         return self._apply_threshold(raw_score, threshold, positive_index)
 
+    # Drop this into predictor.py temporarily
+    def debug_predict(self, image_bytes: bytes):
+        model = model_loader.get_pneumonia_model()
+        config = model_loader.get_pneumonia_config()
+        
+        input_shape = model.input_shape
+        target_size = (input_shape[2], input_shape[1])
+        
+        processed = self.preprocessor.preprocess_for_pneumonia(
+            image_bytes, target_size=target_size
+        )
+        
+        raw_score = float(model.predict(processed, verbose=0)[0][0])
+        threshold = float(config["best_threshold"])
+        
+        print(f"raw_score : {raw_score:.4f}")
+        print(f"threshold : {threshold:.4f}")
+        print(f"decision  : {'PNEUMONIA' if raw_score >= threshold else 'NORMAL'}")
+        print(f"confidence: {raw_score if raw_score >= threshold else 1 - raw_score:.4f}")
+        decision = "PNEUMONIA" if raw_score >= threshold else "NORMAL"
+        confidence = raw_score if raw_score >= threshold else 1 - raw_score
+        return {
+            "raw_score": raw_score,
+            "threshold": threshold,
+            "decision": decision,
+            "confidence": confidence,
+        }
+     
     def _apply_threshold(
         self,
         raw_score: float,
