@@ -1,6 +1,8 @@
 import time
 from typing import Any, Dict, Tuple
 
+import numpy as np
+
 from app.ml.model_loader import model_loader
 from app.ml.preprocessing import ImagePreprocessor
 from app.models.scan import ModelType, PredictionResult
@@ -114,7 +116,7 @@ class Predictor:
     
        
     def _run_pneumonia(self, image_bytes: bytes) -> Tuple[PredictionResult, float]:
-        """Run pneumonia inference with standard preprocessing and metadata threshold."""
+        """Run pneumonia inference for the integrated open-source model."""
         model = model_loader.get_pneumonia_model()
         config = model_loader.get_pneumonia_config()
 
@@ -127,40 +129,67 @@ class Predictor:
         )
 
         prediction = model.predict(processed, verbose=0)
-        raw_score = float(prediction[0][0])
+        output = np.asarray(prediction[0], dtype=np.float32).reshape(-1)
 
         threshold = float(config["best_threshold"])
         class_indices = config["class_indices"]
-        positive_index = int(
-            class_indices.get(
-                "pneumonia",
-                class_indices.get("positive", class_indices.get("tb_positive", 1)),
-            )
-        )
+        positive_index = int(class_indices.get("pneumonia", 1))
 
+        # Binary sigmoid output path: [p_positive] or scalar
+        if output.size == 1:
+            raw_score = float(output[0])
+            if not (0.0 <= raw_score <= 1.0):
+                raw_score = float(1.0 / (1.0 + np.exp(-raw_score)))
+            return self._apply_threshold(raw_score, threshold, positive_index)
+
+        # Multi-class path: mirror open-src debug pipeline -> softmax then class 1 score.
+        logits = output
+        exp_scores = np.exp(logits - np.max(logits))
+        probs = exp_scores / np.sum(exp_scores)
+
+        if positive_index < 0 or positive_index >= probs.size:
+            raise ValueError(
+                f"Pneumonia class index {positive_index} out of range for output size {probs.size}"
+            )
+        raw_score = float(probs[positive_index])
         return self._apply_threshold(raw_score, threshold, positive_index)
 
-    # Drop this into predictor.py temporarily
-    def debug_predict(self, image_bytes: bytes):
+    def debug_predict(self, image_bytes: bytes) -> Dict[str, float | str]:
+        """
+        Debug scoring route for pneumonia model.
+        Returns raw score and threshold exactly like open-src debug script semantics.
+        """
         model = model_loader.get_pneumonia_model()
         config = model_loader.get_pneumonia_config()
-        
+
         input_shape = model.input_shape
         target_size = (input_shape[2], input_shape[1])
-        
         processed = self.preprocessor.preprocess_for_pneumonia(
-            image_bytes, target_size=target_size
+            image_bytes,
+            target_size=target_size,
         )
-        
-        raw_score = float(model.predict(processed, verbose=0)[0][0])
+
+        prediction = model.predict(processed, verbose=0)
+        output = np.asarray(prediction[0], dtype=np.float32).reshape(-1)
         threshold = float(config["best_threshold"])
-        
-        print(f"raw_score : {raw_score:.4f}")
-        print(f"threshold : {threshold:.4f}")
-        print(f"decision  : {'PNEUMONIA' if raw_score >= threshold else 'NORMAL'}")
-        print(f"confidence: {raw_score if raw_score >= threshold else 1 - raw_score:.4f}")
+        class_indices = config["class_indices"]
+        positive_index = int(class_indices.get("pneumonia", 1))
+
+        if output.size == 1:
+            raw_score = float(output[0])
+            if not (0.0 <= raw_score <= 1.0):
+                raw_score = float(1.0 / (1.0 + np.exp(-raw_score)))
+        else:
+            exp_scores = np.exp(output - np.max(output))
+            probs = exp_scores / np.sum(exp_scores)
+            if positive_index < 0 or positive_index >= probs.size:
+                raise ValueError(
+                    f"Pneumonia class index {positive_index} out of range for output size {probs.size}"
+                )
+            raw_score = float(probs[positive_index])
+
         decision = "PNEUMONIA" if raw_score >= threshold else "NORMAL"
-        confidence = raw_score if raw_score >= threshold else 1 - raw_score
+        confidence = raw_score if decision == "PNEUMONIA" else (1.0 - raw_score)
         return {
             "raw_score": raw_score,
             "threshold": threshold,

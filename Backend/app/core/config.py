@@ -26,12 +26,12 @@ class Settings(BaseSettings):
     # ML Models
     TB_MODEL_PATH: str = "ml_models/tb_detection_model.h5"
     TB_MODEL_METADATA_PATH: str = "ml_models/tb_detection_metadata.json"
-    PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia_efficientnetb3_94.keras"
+    PNEUMONIA_MODEL_PATH: str = "ml_models/pneumonia_chest_xray_classifier.h5"
     PNEUMONIA_MODEL_METADATA_PATH: str = "ml_models/pneumonia_detection_metadata.json"
     CHEST_XRAY_VALIDATOR_MODEL_PATH: str = "ml_models/chest_xray_validator.h5"
     CHEST_XRAY_VALIDATOR_METADATA_PATH: str = "ml_models/chest_xray_validator_metadata.json"
     TB_DEFAULT_THRESHOLD: float = 0.655
-    PNEUMONIA_DEFAULT_THRESHOLD: float = 0.688
+    PNEUMONIA_DEFAULT_THRESHOLD: float = 0.608
     CHEST_XRAY_VALIDATOR_THRESHOLD: float = 0.5
 
     # Storage
