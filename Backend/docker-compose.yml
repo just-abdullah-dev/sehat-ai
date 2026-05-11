@@ -1,7 +1,9 @@
+name: sehat-ai-backend
+
 services:
   db:
     image: postgres:15-alpine
-    container_name: sehatai_db
+    container_name: sehat_ai_db
     environment:
       POSTGRES_USER: sehatai_user
       POSTGRES_PASSWORD: sehatai_password
@@ -10,6 +12,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sehat_ai_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sehatai_user -d sehatai_db"]
       interval: 10s
@@ -21,7 +25,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: sehatai_backend
+    container_name: sehat_ai_backend
     ports:
       - "8000:8000"
     environment:
@@ -53,10 +57,17 @@ services:
       - ./uploads:/app/uploads
       - ./reports:/app/reports
       - ./logs:/app/logs
+    networks:
+      - sehat_ai_network
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
 
+networks:
+  sehat_ai_network:
+    name: sehat_ai_network
+
 volumes:
   postgres_data:
+    name: sehat_ai_postgres_data
