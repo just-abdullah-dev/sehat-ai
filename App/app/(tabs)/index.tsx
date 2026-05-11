@@ -12,6 +12,8 @@ import {
   Image,
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -276,19 +278,15 @@ export default function HomeScreen() {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.tint} />
-        }
-      >
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={{ paddingHorizontal: 20, paddingTop: 60, paddingBottom: 10 }}>
         {/* Guest Banner */}
         {isGuest && (
           <TouchableOpacity
-            style={[styles.guestBanner, { backgroundColor: colors.tint + '15', flexDirection: rowDirection }]}
+            style={[styles.guestBanner, { backgroundColor: colors.tint + '15', flexDirection: rowDirection, marginBottom: 16 }]}
             onPress={() => router.push('/login')}
           >
             <Ionicons name="person-add-outline" size={20} color={colors.tint} />
@@ -300,7 +298,7 @@ export default function HomeScreen() {
         )}
 
         {/* Header */}
-        <View style={[styles.header, { flexDirection: rowDirection }]}>
+        <View style={[styles.header, { flexDirection: rowDirection, marginBottom: 0 }]}>
           <View>
             <Text style={[styles.greeting, { color: colors.icon, textAlign }]}>
               {isGuest ? t('home.welcome') : t('home.welcomeBack')}
@@ -321,6 +319,16 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
         </View>
+      </View>
+
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 10 }]}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.tint} />
+        }
+      >
 
         {/* ─── Upload Card ───────────────────────────────────── */}
         <Card style={styles.uploadCard}>
@@ -415,7 +423,7 @@ export default function HomeScreen() {
                   <Text
                     style={[
                       styles.selectionChipText,
-                      { color: diseaseSelection === option ? '#fff' : colors.tint },
+                      { color: diseaseSelection === option ? (theme === 'dark' ? '#000' : '#fff') : colors.tint },
                     ]}
                   >
                     {option === 'both' ? t('home.both') : option === 'tb' ? t('home.tbOnly') : t('home.pneumoniaOnly')}
@@ -524,7 +532,7 @@ export default function HomeScreen() {
                   <Text style={[styles.resultMessage, { color: colors.icon }]}>
                     {tbResult.message}
                   </Text>
-                  
+
                   {/* Save Status Indicator */}
                   {isAuthenticated && (
                     <View style={[styles.saveStatus, { backgroundColor: colors.tint + '10', borderColor: tbResult.scan_id != null ? '#51CF66' : '#FF6B6B' }]}>
@@ -534,7 +542,7 @@ export default function HomeScreen() {
                         color={tbResult.scan_id != null ? '#51CF66' : '#FF6B6B'}
                       />
                       <Text style={[styles.saveStatusText, { color: tbResult.scan_id != null ? '#51CF66' : '#FF6B6B' }]}>
-                          {tbResult.scan_id != null ? t('home.savedToHistory') : t('home.notSavedToHistory')}
+                        {tbResult.scan_id != null ? t('home.savedToHistory') : t('home.notSavedToHistory')}
                       </Text>
                     </View>
                   )}
@@ -623,7 +631,7 @@ export default function HomeScreen() {
                   <Text style={[styles.resultMessage, { color: colors.icon }]}>
                     {pneumoniaResult.message}
                   </Text>
-                  
+
                   {/* Save Status Indicator */}
                   {isAuthenticated && (
                     <View style={[styles.saveStatus, { backgroundColor: colors.tint + '10', borderColor: pneumoniaResult.scan_id != null ? '#51CF66' : '#FF6B6B' }]}>
@@ -633,7 +641,7 @@ export default function HomeScreen() {
                         color={pneumoniaResult.scan_id != null ? '#51CF66' : '#FF6B6B'}
                       />
                       <Text style={[styles.saveStatusText, { color: pneumoniaResult.scan_id != null ? '#51CF66' : '#FF6B6B' }]}>
-                          {pneumoniaResult.scan_id != null ? t('home.savedToHistory') : t('home.notSavedToHistory')}
+                        {pneumoniaResult.scan_id != null ? t('home.savedToHistory') : t('home.notSavedToHistory')}
                       </Text>
                     </View>
                   )}
@@ -691,7 +699,7 @@ export default function HomeScreen() {
               <View style={styles.lastScanRow}>
                 {lastScan.file_url && (
                   <Image
-                    source={{ uri: `${API_CONFIG.BASE_URL}${lastScan.file_url}` }}
+                    source={{ uri: `${API_CONFIG.BASE_URL}/${lastScan.file_url}` }}
                     style={styles.lastScanImage}
                   />
                 )}
@@ -786,10 +794,10 @@ export default function HomeScreen() {
         visible={isAnalyzing}
         message={analyzingModel || 'Analyzing X-ray...'}
       /> */}
-      
+
       {/* Bottom safety spacer to prevent overlap with taskbar */}
       <View style={{ height: 45, backgroundColor: colors.background }} />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

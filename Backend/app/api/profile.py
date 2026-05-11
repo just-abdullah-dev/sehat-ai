@@ -73,17 +73,17 @@ async def update_profile(
         HTTPException 400: If username already taken
     """
     # Check if new username is taken by another user
-    if profile_data.username and profile_data.username != current_user.username:
-        existing = db.query(User).filter(
-            User.username == profile_data.username,
-            User.id != current_user.id
-        ).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already taken"
-            )
-        current_user.username = profile_data.username
+    # if profile_data.username and profile_data.username != current_user.username:
+    #     existing = db.query(User).filter(
+    #         User.username == profile_data.username,
+    #         User.id != current_user.id
+    #     ).first()
+    #     if existing:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             detail="Username already taken"
+    #         )
+    #     current_user.username = profile_data.username
 
     if profile_data.phone is not None:
         current_user.phone = profile_data.phone

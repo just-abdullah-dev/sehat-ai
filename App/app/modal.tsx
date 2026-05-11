@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { Colors } from '@/constants/theme';
@@ -24,6 +25,7 @@ import { reportApi } from '@/src/services/api';
 export default function ReportViewerModal() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { isAuthenticated, isGuest } = useAuth();
   const colors = Colors[theme];
@@ -49,12 +51,12 @@ export default function ReportViewerModal() {
           <View style={[styles.iconContainer, { backgroundColor: colors.tint + '20' }]}>
             <Ionicons name="lock-closed" size={64} color={colors.tint} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Sign In Required</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('modal.signInRequired')}</Text>
           <Text style={[styles.subtitle, { color: colors.icon }]}>
-            Reports are only available for registered users. Sign in to download and share your diagnostic reports.
+            {t('modal.signInRequiredBody')}
           </Text>
           <Button
-            title="Sign In"
+            title={t('settings.signIn')}
             onPress={() => { router.back(); router.push('/login'); }}
             style={styles.signInButton}
           />
@@ -77,12 +79,12 @@ export default function ReportViewerModal() {
           <View style={[styles.iconContainer, { backgroundColor: colors.tint + '20' }]}>
             <Ionicons name="alert-circle" size={64} color="#FF6B6B" />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Invalid Scan</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('modal.invalidScan')}</Text>
           <Text style={[styles.subtitle, { color: colors.icon }]}>
-            No valid scan ID found. Please run a new analysis and try again.
+            {t('modal.invalidScanBody')}
           </Text>
           <Button
-            title="Back"
+            title={t('modal.back')}
             onPress={() => router.back()}
             style={styles.signInButton}
           />
@@ -98,11 +100,11 @@ export default function ReportViewerModal() {
     const authHeader = await reportApi.getAuthHeader();
 
     if (!authHeader) {
-      throw new Error('Session expired. Please sign in again and retry.');
+      throw new Error(t('modal.errors.sessionExpired'));
     }
 
     if (!FileSystem.documentDirectory) {
-      throw new Error('Unable to access local storage on this device.');
+      throw new Error(t('modal.errors.storageUnavailable'));
     }
 
     const fileUri = `${FileSystem.documentDirectory}sehatai_report_${scanId}_en.pdf`;
@@ -116,20 +118,20 @@ export default function ReportViewerModal() {
     }
 
     if (downloadResult.status === 401) {
-      throw new Error('Session expired. Please sign in again and retry.');
+      throw new Error(t('modal.errors.sessionExpired'));
     }
 
     if (downloadResult.status === 404) {
-      throw new Error('Report not found for this scan.');
+      throw new Error(t('modal.errors.reportNotFound'));
     }
 
-    throw new Error(`Download failed (HTTP ${downloadResult.status}). Please try again.`);
+    throw new Error(t('modal.errors.downloadFailedWithCode', { status: downloadResult.status }));
   };
 
   const openReport = async (uri: string) => {
     const canShare = await Sharing.isAvailableAsync();
     if (!canShare) {
-      throw new Error('No app is available to open this PDF on your device.');
+      throw new Error(t('modal.errors.noPdfApp'));
     }
     await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
   };
@@ -140,20 +142,20 @@ export default function ReportViewerModal() {
       const uri = await downloadReport();
       if (!uri) return;
       setDownloadedUri(uri);
-      Alert.alert('Report Downloaded', 'Your report has been saved.', [
+      Alert.alert(t('modal.alerts.reportDownloadedTitle'), t('modal.alerts.reportDownloadedBody'), [
         {
-          text: 'Open',
+          text: t('modal.open'),
           onPress: () => {
             void openReport(uri).catch((error: Error) => {
-              Alert.alert('Open Failed', error.message || 'Please try sharing the report.');
+              Alert.alert(t('modal.alerts.openFailedTitle'), error.message || t('modal.alerts.tryShare')); 
             });
           },
         },
-        { text: 'OK' },
+        { text: t('modal.ok') },
       ]);
     } catch (err: unknown) {
       const error = err as Error;
-      Alert.alert('Download Failed', error.message || 'Please try again.');
+      Alert.alert(t('modal.alerts.downloadFailedTitle'), error.message || t('modal.alerts.tryAgain'));
     } finally {
       setIsLoading(false);
     }
@@ -172,11 +174,11 @@ export default function ReportViewerModal() {
       if (canShare) {
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
       } else {
-        Alert.alert('Sharing unavailable', 'Sharing is not supported on this device.');
+        Alert.alert(t('modal.alerts.sharingUnavailableTitle'), t('modal.alerts.sharingUnavailableBody'));
       }
     } catch (err: unknown) {
       const error = err as Error;
-      Alert.alert('Share Failed', error.message || 'Please try again.');
+      Alert.alert(t('modal.alerts.shareFailedTitle'), error.message || t('modal.alerts.tryAgain'));
     } finally {
       setIsLoading(false);
     }
@@ -198,9 +200,9 @@ export default function ReportViewerModal() {
             <Ionicons name="document-text" size={64} color={colors.tint} />
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>Medical Report</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('modal.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.icon }]}>
-            Download your AI-generated diagnostic report as PDF
+            {t('modal.subtitle')}
           </Text>
 
           {/* Report Ready Indicator */}
@@ -208,7 +210,7 @@ export default function ReportViewerModal() {
             <Card>
               <View style={styles.reportInfo}>
                 <Ionicons name="checkmark-circle" size={24} color="#51CF66" />
-                <Text style={[styles.reportText, { color: colors.text }]}>Report ready</Text>
+                <Text style={[styles.reportText, { color: colors.text }]}>{t('modal.reportReady')}</Text>
               </View>
             </Card>
           )}
@@ -217,11 +219,11 @@ export default function ReportViewerModal() {
           {!downloadedUri && (
             <Card>
               <View style={styles.reportFeatures}>
-                <FeatureItem icon="analytics-outline" text="Detailed diagnostic analysis" />
-                <FeatureItem icon="medical-outline" text="Confidence scores and metrics" />
-                <FeatureItem icon="time-outline" text="Scan history and timeline" />
-                <FeatureItem icon="document-text-outline" text="Professional PDF format" />
-                <FeatureItem icon="person-outline" text="Includes account name and email" />
+                <FeatureItem icon="analytics-outline" text={t('modal.features.analysis')} />
+                <FeatureItem icon="medical-outline" text={t('modal.features.confidence')} />
+                <FeatureItem icon="time-outline" text={t('modal.features.history')} />
+                <FeatureItem icon="document-text-outline" text={t('modal.features.pdf')} />
+                <FeatureItem icon="person-outline" text={t('modal.features.account')} />
               </View>
             </Card>
           )}
@@ -229,13 +231,13 @@ export default function ReportViewerModal() {
           {/* Action Buttons */}
           <View style={styles.actions}>
             <Button
-              title={downloadedUri ? 'Download Again' : 'Download Report'}
+              title={downloadedUri ? t('modal.downloadAgain') : t('modal.downloadReport')}
               onPress={handleDownload}
               loading={isLoading}
               style={styles.actionButton}
             />
             <Button
-              title="Share Report"
+              title={t('modal.shareReport')}
               variant="outline"
               onPress={handleShare}
               loading={isLoading}
@@ -245,7 +247,7 @@ export default function ReportViewerModal() {
         </View>
       </ScrollView>
 
-      <LoadingSpinner visible={isLoading} message="Downloading report..." />
+      <LoadingSpinner visible={isLoading} message={t('modal.downloading')} />
     </View>
   );
 }

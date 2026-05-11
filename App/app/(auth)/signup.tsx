@@ -168,9 +168,24 @@ export default function SignupScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={[styles.terms, { color: colors.icon, textAlign }]}>
-                  {t('auth.agreeTerms')}
-                </Text>
+                <View style={{ marginTop: 12, alignItems: 'center' }}>
+                  <Text style={[styles.terms, { color: colors.icon, textAlign: 'center', marginBottom: 6 }]}>
+                    {t('auth.agreeTerms')}
+                  </Text>
+                  <View style={{ flexDirection: rowDirection, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+                    <TouchableOpacity onPress={() => router.push('/terms-of-service')}>
+                      <Text style={[styles.terms, { color: colors.tint, fontWeight: '600' }]}>
+                        {t('auth.termsLink')}
+                      </Text>
+                    </TouchableOpacity>
+                    <Text style={[styles.terms, { color: colors.icon }]}>•</Text>
+                    <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
+                      <Text style={[styles.terms, { color: colors.tint, fontWeight: '600' }]}>
+                        {t('auth.privacyLink')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             )}
           </Formik>

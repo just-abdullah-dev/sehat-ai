@@ -171,6 +171,40 @@ export const authApi = {
   },
 };
 
+// ─── Password Reset API ───────────────────────────────────────────────────────
+
+export const passwordResetApi = {
+  /** Step 1: Request OTP. Returns dev_otp when backend DEBUG=True. */
+  async requestOtp(email: string): Promise<{ message: string; dev_otp?: string | null }> {
+    try {
+      const { data } = await apiClient.post(API_ENDPOINTS.FORGOT_PASSWORD, { email });
+      return data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Failed to send OTP. Please try again.'));
+    }
+  },
+
+  /** Step 2: Verify OTP is correct and not expired. */
+  async verifyOtp(email: string, otp: string): Promise<{ message: string }> {
+    try {
+      const { data } = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, { email, otp });
+      return data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Invalid or expired OTP.'));
+    }
+  },
+
+  /** Step 3: Set new password (OTP is verified again server-side). */
+  async resetPassword(email: string, otp: string, new_password: string): Promise<{ message: string }> {
+    try {
+      const { data } = await apiClient.post(API_ENDPOINTS.RESET_PASSWORD, { email, otp, new_password });
+      return data;
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Failed to reset password. Please try again.'));
+    }
+  },
+};
+
 // ─── Profile API ──────────────────────────────────────────────────────────────
 
 export const profileApi = {
@@ -268,7 +302,7 @@ export const historyApi = {
 
 export const reportApi = {
   getReportUrl(scanId: number): string {
-    return `${API_CONFIG.BASE_URL}${API_ENDPOINTS.REPORT}${scanId}`;
+    return `${API_CONFIG.BASE_URL}/${API_ENDPOINTS.REPORT}${scanId}`;
   },
 
   async getAuthHeader(): Promise<string | null> {
@@ -281,6 +315,7 @@ export const reportApi = {
 
 const api = {
   auth: authApi,
+  passwordReset: passwordResetApi,
   profile: profileApi,
   prediction: predictionApi,
   history: historyApi,

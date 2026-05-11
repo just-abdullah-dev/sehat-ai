@@ -1,0 +1,18 @@
+{
+  "model_name": "chest_xray_validator",
+  "input_size": [
+    224,
+    224
+  ],
+  "class_indices": {
+    "chest_xray": 0,
+    "not_xray": 1
+  },
+  "best_threshold": 0.3,
+  "val_accuracy": null,
+  "val_auc": null,
+  "val_precision": null,
+  "val_recall": null,
+  "base_model": "MobileNetV2",
+  "trained_on": "chest-xray-pneumonia + intel-image-classification + brain-mri"
+}

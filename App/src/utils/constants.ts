@@ -1,12 +1,45 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 // Application constants
 
 // API Configuration
 // Android emulator: 10.0.2.2 maps to host machine localhost
 // iOS simulator: localhost works directly
+const expoApiUrl = Constants.expoConfig?.extra?.apiUrl as string | undefined;
+const expoHostUri =
+  (Constants.expoConfig as { hostUri?: string } | null)?.hostUri ??
+  (Constants.manifest2 as { extra?: { expoClient?: { hostUri?: string } } } | null)?.extra?.expoClient?.hostUri;
+
+const resolveApiBaseUrl = (): string => {
+  if (expoApiUrl && !expoApiUrl.includes('localhost')) {
+    return expoApiUrl;
+  }
+
+  if (!__DEV__) {
+    return expoApiUrl ?? 'http://localhost:8000';
+  }
+
+  // Android emulator cannot reach host localhost directly.
+  if (Platform.OS === 'android' && expoHostUri?.includes('127.0.0.1')) {
+    return 'http://10.0.2.2:8000';
+  }
+
+  // In Expo Go on a physical device, route API calls to the same LAN host as Metro.
+  const host = expoHostUri?.split(':')[0];
+  if (host) {
+    return `http://${host}:8000`;
+  }
+
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8000';
+  }
+
+  return 'http://localhost:8000';
+};
+
 export const API_CONFIG = {
-  BASE_URL: __DEV__
-    ? 'http://192.168.100.70:8000/' //'http://10.0.2.2:8000'   // change to 'http://localhost:8000' for iOS simulator
-    : 'https://api.sehatai.com',
+  BASE_URL: resolveApiBaseUrl(),
   TIMEOUT: 30000,  // 30s to account for ML inference time
 };
 
@@ -32,6 +65,9 @@ export const API_ENDPOINTS = {
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
   REFRESH: '/auth/refresh',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  VERIFY_OTP: '/auth/verify-otp',
+  RESET_PASSWORD: '/auth/reset-password',
 
   // Prediction  — append ?model=tb or ?model=pneumonia; /both/ for both models in one call
   PREDICT: '/predict/',

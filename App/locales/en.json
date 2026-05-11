@@ -116,5 +116,46 @@
     "unableToCreate": "Unable to create account. Please try again.",
     "loggingIn": "Logging in...",
     "creatingAccount": "Creating account..."
+  },
+  "modal": {
+    "title": "Medical Report",
+    "subtitle": "Download and share your AI scan report as a PDF.",
+    "reportReady": "Report is ready to share",
+    "downloadReport": "Download Report",
+    "downloadAgain": "Download Again",
+    "shareReport": "Share Report",
+    "downloading": "Downloading report...",
+    "open": "Open",
+    "ok": "OK",
+    "back": "Back",
+    "signInRequired": "Sign in required",
+    "signInRequiredBody": "Please sign in to download and share your medical reports.",
+    "invalidScan": "Invalid scan",
+    "invalidScanBody": "We could not find a valid scan ID for this report.",
+    "features": {
+      "analysis": "Detailed analysis result",
+      "confidence": "Prediction confidence score",
+      "history": "Scan timestamp and history data",
+      "pdf": "Printable PDF format",
+      "account": "Linked to your account"
+    },
+    "alerts": {
+      "reportDownloadedTitle": "Report downloaded",
+      "reportDownloadedBody": "Your report was downloaded successfully.",
+      "openFailedTitle": "Unable to open report",
+      "tryShare": "Try sharing the report with another app.",
+      "downloadFailedTitle": "Download failed",
+      "tryAgain": "Please try again.",
+      "sharingUnavailableTitle": "Sharing unavailable",
+      "sharingUnavailableBody": "Sharing is not available on this device.",
+      "shareFailedTitle": "Share failed"
+    },
+    "errors": {
+      "sessionExpired": "Your session expired. Please sign in again.",
+      "storageUnavailable": "Storage is unavailable on this device.",
+      "reportNotFound": "Report not found.",
+      "downloadFailedWithCode": "Failed to download report (status {{status}}).",
+      "noPdfApp": "No app available to open PDF files."
+    }
   }
 }

@@ -10,6 +10,8 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
@@ -164,10 +166,30 @@ export default function HistoryScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      {/* Header */}
+      <View style={[styles.header, { paddingHorizontal: 20, paddingTop: 60, marginBottom: 10 }]}>
+        <View>
+          <Text style={[styles.greeting, { color: colors.icon }]}>Welcome back,</Text>
+          <Text style={[styles.userName, { color: colors.text }]}>{user?.username || 'User'}</Text>
+        </View>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+          <View style={[styles.avatar, { backgroundColor: colors.tint + '20' }]}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={24} color={colors.tint} />
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 10 }]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -176,22 +198,6 @@ export default function HistoryScreen() {
           />
         }
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.greeting, { color: colors.icon }]}>Welcome back,</Text>
-            <Text style={[styles.userName, { color: colors.text }]}>{user?.username || 'User'}</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-            <View style={[styles.avatar, { backgroundColor: colors.tint + '20' }]}>
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-              ) : (
-                <Ionicons name="person" size={24} color={colors.tint} />
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
 
         <View style={styles.titleBlock}>
           <Text style={[styles.title, { color: colors.text }]}>Scan History</Text>
@@ -316,7 +322,7 @@ export default function HistoryScreen() {
                 timestamp={scan.created_at}
                 imageUrl={
                   scan.file_url
-                    ? `${API_CONFIG.BASE_URL}${scan.file_url}`
+                    ? `${API_CONFIG.BASE_URL}/${scan.file_url}`
                     : undefined
                 }
                 onPress={() => router.push(`/modal?scanId=${scan.id}`)}
@@ -325,7 +331,7 @@ export default function HistoryScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

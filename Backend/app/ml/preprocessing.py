@@ -3,7 +3,7 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 class ImagePreprocessor:
@@ -66,42 +66,22 @@ class ImagePreprocessor:
         target_size: Tuple[int, int] = None,
     ) -> np.ndarray:
         """
-        Preprocess image for Pneumonia detection model (EfficientNetB3, .keras).
+        Preprocess image for pneumonia model from
+        open-src-model/chest-xray-pneumonia-detection.
 
-        Pipeline:
-            1. Load via PIL, convert to RGB
-            2. Resize to 300×300 (EfficientNetB3 native input size)
-            3. Apply CLAHE on LAB L-channel (clipLimit=2.0, tileGrid=8×8)
-               — enhances consolidations, infiltrates, air bronchograms
-            4. Pass through EfficientNet preprocess_input (ImageNet mean/std normalization)
-               — expects [0,255] float32 range, NOT [0,1]
-            5. Add batch dimension → shape (1, 300, 300, 3)
-
-        NOTE: target_size is accepted for interface compatibility but EfficientNetB3
-        always uses 300×300. If the model's input_shape differs, the caller's
-        target_size from model.input_shape will override correctly.
+        Pipeline parity with source app:
+            1. Load via PIL and convert to RGB
+            2. Resize to 180x180 (Lanczos)
+            3. Keep pixel range as-is (no CLAHE, no scaling)
+            4. Add batch dimension
         """
-        import tensorflow as tf
-
-        size = target_size if target_size is not None else (300, 300)
+        size = target_size if target_size is not None else (180, 180)
         try:
             image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-            image = image.resize(size)
-            img_np = np.array(image).astype(np.uint8)
-
-            # CLAHE on LAB L-channel
-            lab = cv2.cvtColor(img_np, cv2.COLOR_RGB2LAB)
-            l_channel, a_channel, b_channel = cv2.split(lab)
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-            l_enhanced = clahe.apply(l_channel)
-            lab_enhanced = cv2.merge([l_enhanced, a_channel, b_channel])
-            img_enhanced = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2RGB)
-
-            # EfficientNet normalization — preprocess_input expects [0, 255] float32
-            img_float = img_enhanced.astype(np.float32)
-            img_preprocessed = tf.keras.applications.efficientnet.preprocess_input(img_float)
-
-            return np.expand_dims(img_preprocessed, axis=0)
+            fitted = ImageOps.fit(image, size, method=Image.Resampling.LANCZOS)
+            img_np = np.asarray(fitted).astype(np.uint8)
+            rgb = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+            return np.expand_dims(rgb.astype(np.float32), axis=0)
 
         except Exception as e:
             raise ValueError(f"Pneumonia preprocessing failed: {str(e)}")

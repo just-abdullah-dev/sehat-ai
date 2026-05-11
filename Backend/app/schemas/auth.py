@@ -42,3 +42,27 @@ class TokenData(BaseModel):
 class RefreshTokenRequest(BaseModel):
     """Schema for refresh token request"""
     refresh_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for requesting a password reset OTP"""
+    email: EmailStr
+
+
+class VerifyOTPRequest(BaseModel):
+    """Schema for verifying OTP sent to email"""
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for completing a password reset"""
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=8, max_length=100)
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Response after requesting OTP — dev_otp only present when DEBUG=True"""
+    message: str
+    dev_otp: Optional[str] = None  # only populated in DEBUG mode
