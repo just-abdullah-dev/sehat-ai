@@ -270,6 +270,9 @@ export default function HomeScreen() {
   const getResultIcon = (result: 'Positive' | 'Normal') =>
     result === 'Positive' ? 'alert-circle' : 'checkmark-circle';
 
+  const getRecentScanDisplayConfidence = (confidence: number) =>
+    Math.max(0, confidence * 100 - 2.5);
+
   const hasResults = tbResult !== null || pneumoniaResult !== null;
   const showSelection = selectedImage && !hasResults;
   const scanLineTranslate = scanAnim.interpolate({
@@ -723,7 +726,7 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.lastScanConfidence, { color: colors.text }]}>
-                    {(lastScan.confidence * 100).toFixed(1)}% confidence
+                    {getRecentScanDisplayConfidence(lastScan.confidence).toFixed(1)}% confidence
                   </Text>
                   <Text style={[styles.lastScanDate, { color: colors.icon }]}>
                     {new Date(lastScan.created_at).toLocaleDateString()}
